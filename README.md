@@ -10,7 +10,7 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
 | 🚚 App | `logistics`, native, in the server |
 | 🧩 Package | `logistics` (needs ERP's selling) |
 | 🖥️ Interface | its own, at `/logistics/`: today's trips for dispatchers, a driver's stops, and the records |
-| 🔐 Roles | Dispatcher, Driver |
+| 🔐 Roles | Fleet Dispatcher, Driver |
 | 📜 Licence | AGPL-3.0-only |
 
 ## Highlights

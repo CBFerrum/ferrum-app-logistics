@@ -25,7 +25,7 @@ contributes:
       description: Trips, drivers' stops and proof of delivery
       icon: truck
       color: "#1d4ed8"
-      roles: [Dispatcher, Driver]
+      roles: [Fleet Dispatcher, Driver]
   shell.open:
     - {id: logistics, package: logistics, path: "logistics/e/{entity}/{id}", list: "logistics/e/{entity}"}
   shell.create:

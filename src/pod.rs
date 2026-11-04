@@ -61,7 +61,7 @@ impl DocHook for ProofHook {
         if status(&trip, "Planned") != "Dispatched" {
             return Err(Error::field("trip", "is not out: dispatch it first"));
         }
-        let dispatcher = hc.ctx.is_admin || hc.ctx.roles.iter().any(|r| r == "Dispatcher");
+        let dispatcher = hc.ctx.is_admin || hc.ctx.roles.iter().any(|r| r == "Fleet Dispatcher");
         if !dispatcher && !drives(hc, &trip).await? {
             return Err(Error::Forbidden("only the trip's driver records its deliveries".into()));
         }
