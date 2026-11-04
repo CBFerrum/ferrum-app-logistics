@@ -1,0 +1,32 @@
+id: logistics
+name: Logistics
+version: 0.1.0
+publisher: cbferrum
+summary: "Depots, vehicles and drivers, trips dispatched with their stops in order, and proof of delivery"
+description: README.md
+categories: [inventory, sales]
+license: AGPL-3.0-only
+homepage: https://github.com/CBFerrum/ferrum-app-logistics
+support: https://github.com/CBFerrum/ferrum-app-logistics/issues
+runtime: native
+platform: ">=0.3.2, <0.4"
+# Delivery notes and customers are ERP's: installing it installs ERP.
+requires: {erp: ">=0.1"}
+packages: [logistics]
+uninstall: ask
+# Its own interface at /logistics/: today's trips for dispatchers, and a driver's stops.
+ui:
+  dist: ui/dist
+contributes:
+  shell.app:
+    - id: logistics
+      route: logistics
+      title: Logistics
+      description: Trips, drivers' stops and proof of delivery
+      icon: truck
+      color: "#1d4ed8"
+      roles: [Dispatcher, Driver]
+  shell.open:
+    - {id: logistics, package: logistics, path: "logistics/e/{entity}/{id}", list: "logistics/e/{entity}"}
+  shell.create:
+    - {id: trip, label: Trip, path: logistics/e/Trip/new, entity: Trip}
