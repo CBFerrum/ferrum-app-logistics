@@ -12,7 +12,7 @@ modules:
     items: [Trip, ProofOfDelivery, Vehicle, Driver, Depot]
 
 roles:
-  - name: Dispatcher
+  - name: Fleet Dispatcher
     description: Plans and dispatches trips, keeps the fleet and its drivers, and sees every proof of delivery.
     permissions:
       - {entity: Depot, read: true, write: true, create: true}

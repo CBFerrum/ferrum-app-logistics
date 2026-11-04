@@ -154,7 +154,7 @@ async fn scenario() {
     for (_, dn) in &notes[..3] {
         t.k.submit(&a, "DeliveryNote", *dn, None).await.expect("submitted");
     }
-    let dispatcher = t.user("desk@fleet.test", &["Dispatcher"]).await;
+    let dispatcher = t.user("desk@fleet.test", &["Fleet Dispatcher"]).await;
     let dan = t.user("dan@fleet.test", &["Driver"]).await;
     let eve = t.user("eve@fleet.test", &["Driver"]).await;
     let hub = uid(&t.insert(&dispatcher, "Depot", json!({"depot_name": "North Hub", "latitude": "12.9700", "longitude": "77.5900"})).await["id"]);
