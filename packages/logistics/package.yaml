@@ -1,0 +1,31 @@
+package: logistics
+version: 0.1.0
+label: Logistics
+description: "Depots, vehicles and drivers, trips dispatched with their stops in order, and proof of delivery"
+depends: [core, selling]
+
+modules:
+  - name: logistics
+    label: Logistics
+    icon: truck
+    order: 53
+    items: [Trip, ProofOfDelivery, Vehicle, Driver, Depot]
+
+roles:
+  - name: Dispatcher
+    description: Plans and dispatches trips, keeps the fleet and its drivers, and sees every proof of delivery.
+    permissions:
+      - {entity: Depot, read: true, write: true, create: true}
+      - {entity: Vehicle, read: true, write: true, create: true, export: true}
+      - {entity: Driver, read: true, write: true, create: true, export: true}
+      - {entity: Trip, read: true, write: true, create: true, export: true}
+      - {entity: ProofOfDelivery, read: true, create: true, export: true}
+      - {entity: Customer, read: true}
+      - {entity: DeliveryNote, read: true}
+  - name: Driver
+    description: Drives trips and records what happened at each stop.
+    permissions:
+      - {entity: Trip, read: true}
+      - {entity: Vehicle, read: true}
+      - {entity: Depot, read: true}
+      - {entity: ProofOfDelivery, read: true, create: true}

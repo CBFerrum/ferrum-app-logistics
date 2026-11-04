@@ -1,0 +1,104 @@
+- name: Depot
+  label: Depot
+  label_plural: Depots
+  kind: master
+  module: logistics
+  title_field: depot_name
+  description: Where trips start and end.
+  fields:
+    - {name: depot_name, type: data, required: true, unique: true, in_list: true}
+    - {name: address, type: text}
+    - {name: latitude, type: decimal, description: "Degrees north, for ordering a trip's stops"}
+    - {name: longitude, type: decimal, description: "Degrees east"}
+  list: {columns: [depot_name], sort: depot_name asc}
+
+- name: Vehicle
+  label: Vehicle
+  label_plural: Vehicles
+  kind: master
+  module: logistics
+  title_field: registration
+  fields:
+    - {name: registration, type: data, required: true, unique: true, in_list: true}
+    - {name: vehicle_type, type: select, options: [Van, Truck, Car, Bike], default: Van, in_list: true, in_filter: true}
+    - {name: depot, type: link, to: Depot, in_list: true, in_filter: true}
+    - {name: capacity_kg, type: decimal, required: true, label: Capacity (kg), in_list: true}
+    - {name: status, type: select, options: [Available, Off Road], default: Available, in_list: true, in_filter: true, description: "Off road: in for service or repair, and not dispatched"}
+    - {name: next_service_on, type: date}
+    - {name: odometer_km, type: int, label: Odometer (km)}
+  list: {columns: [registration, vehicle_type, depot, capacity_kg, status], sort: registration asc}
+
+- name: Driver
+  label: Driver
+  label_plural: Drivers
+  kind: master
+  module: logistics
+  title_field: full_name
+  fields:
+    - {name: full_name, type: data, required: true, in_list: true}
+    - {name: email, type: email, unique: true, in_list: true, description: "Their sign-in: the trips they drive are theirs to record"}
+    - {name: phone, type: phone}
+    - {name: licence_number, type: data, required: true}
+    - {name: licence_expires_on, type: date, required: true, in_list: true}
+    - {name: status, type: select, options: [Active, Inactive], default: Active, in_list: true, in_filter: true}
+  list: {columns: [full_name, email, licence_expires_on, status], sort: full_name asc}
+
+- name: TripStop
+  label: Stop
+  kind: child
+  fields:
+    - {name: sequence, type: int, in_list: true, description: "The order it is visited in"}
+    - {name: customer, type: link, to: Customer, in_list: true}
+    - {name: delivery_note, type: link, to: DeliveryNote, in_list: true}
+    - {name: address, type: text, required: true}
+    - {name: latitude, type: decimal}
+    - {name: longitude, type: decimal}
+    - {name: weight_kg, type: decimal, default: 0, label: Weight (kg), in_list: true}
+    - {name: status, type: select, options: [Pending, Delivered, Failed], default: Pending, read_only: true, in_list: true}
+    - {name: delivered_at, type: datetime, read_only: true}
+
+- name: Trip
+  label: Trip
+  label_plural: Trips
+  kind: master
+  module: logistics
+  title_field: date
+  description: A vehicle and its driver out for a day, with its stops in order. Dispatched, each stop is proved delivered or failed.
+  fields:
+    - {name: date, type: date, required: true, in_list: true, in_filter: true}
+    - {name: depot, type: link, to: Depot, required: true, in_filter: true}
+    - {name: vehicle, type: link, to: Vehicle, required: true, in_list: true, in_filter: true}
+    - {name: driver, type: link, to: Driver, required: true, in_list: true, in_filter: true}
+    - {name: stops, type: table, of: TripStop}
+    - {name: total_weight, type: decimal, read_only: true, label: Load (kg), in_list: true}
+    - {name: distance_km, type: decimal, read_only: true, label: "Distance (km, straight line)", description: "From the depot through the stops in order and back, as the crow flies"}
+    - {name: status, type: select, options: [Planned, Dispatched, Completed, Cancelled], default: Planned, read_only: true, no_copy: true, in_list: true, in_filter: true}
+    - {name: dispatched_at, type: datetime, read_only: true, no_copy: true}
+    - {name: completed_at, type: datetime, read_only: true, no_copy: true}
+  actions:
+    - {name: plan_route, label: Order the Stops, permission: write, condition: "doc.status == 'Planned'"}
+    - {name: dispatch, label: Dispatch It, permission: write, condition: "doc.status == 'Planned'"}
+    - {name: complete, label: Complete It, permission: write, condition: "doc.status == 'Dispatched'"}
+    - {name: cancel_trip, label: Cancel It, permission: write, condition: "doc.status == 'Planned' || doc.status == 'Dispatched'"}
+  numbering: {template: "TRP-{YYYY}-{seq:5}"}
+  list: {columns: [number, date, vehicle, driver, total_weight, status], sort: date desc}
+
+- name: ProofOfDelivery
+  label: Proof of Delivery
+  label_plural: Proofs of Delivery
+  kind: master
+  module: logistics
+  title_field: received_by
+  description: What happened at a stop, recorded by its driver. It marks the stop delivered or failed.
+  fields:
+    - {name: trip, type: link, to: Trip, required: true, in_list: true, in_filter: true}
+    - {name: stop, type: int, required: true, in_list: true, description: "The stop's place in the trip"}
+    - {name: outcome, type: select, options: [Delivered, Refused, Damaged, Not Home], default: Delivered, required: true, in_list: true, in_filter: true}
+    - {name: received_by, type: data, in_list: true, description: "Who took the goods"}
+    - {name: signature, type: attach}
+    - {name: photo, type: attach}
+    - {name: note, type: text}
+    - {name: latitude, type: decimal}
+    - {name: longitude, type: decimal}
+    - {name: recorded_by, type: data, read_only: true, no_copy: true}
+  list: {columns: [trip, stop, outcome, received_by, created_at], sort: created_at desc}
