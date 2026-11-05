@@ -29,3 +29,6 @@ roles:
       - {entity: Vehicle, read: true}
       - {entity: Depot, read: true}
       - {entity: ProofOfDelivery, read: true, create: true}
+
+personal_data:
+  - {entity: Driver, match: email, phone: phone, name: full_name, erase: [full_name, email, phone, licence_number, licence_expires_on]}
