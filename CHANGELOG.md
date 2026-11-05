@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.3
+
+Personal-data requests find a driver by email, phone number or name; erasure blanks their name, contact details and licence, and their trips keep the anonymized driver (Ferrum's FERRUM-PRIVACY-002).
+
 ## 0.1.2
 
 Rebuilt with Ferrum-Frontend daeadda: after an action runs, a record page shows what the action said it did rather than only that it is done.
