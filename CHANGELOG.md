@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.4
+
+Rebuilt with Ferrum-Frontend 00dea07: in a workflow state that names what may change, the other fields show read-only, and the fields the state needs show required.
+
 ## 0.1.3
 
 Personal-data requests find a driver by email, phone number or name; erasure blanks their name, contact details and licence, and their trips keep the anonymized driver (Ferrum's FERRUM-PRIVACY-002).
