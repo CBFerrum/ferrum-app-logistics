@@ -330,7 +330,7 @@ async fn scenario() {
     };
     refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"delivery_note": notes[1].1.to_string()})))).await, "invalid", "its goods come with a return note");
     refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"kind": "Delivery"})))).await, "invalid", "a return note goes with a collection");
-    refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"return_note": notes[3].1.to_string()})))).await, "invalid", "is a return delivery note in draft");
+    refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"return_note": notes[3].1.to_string()})))).await, "invalid", "is_return must be true");
     refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"window_from": "9am"})))).await, "invalid", "a time like 09:30, not 9am");
     refused(t.k.insert(&dispatcher, "Trip", obj(with(json!({"window_from": "11:00"})))).await, "invalid", "closes before it opens");
     let afternoon = json!({"address": "Bo Books, 2 Market Street", "latitude": "12.9800", "longitude": "77.6000", "weight_kg": "5", "window_from": "14:00", "window_to": "16:00"});
@@ -368,6 +368,8 @@ async fn scenario() {
     // Proved after its day: the stops with windows are late, the one without never is.
     assert_eq!(seen, [("Delivered", false), ("Collected", true), ("Failed", true)]);
     t.act(&dispatcher, round, "complete").await.expect("complete");
+    // Its return note is submitted now: no trip collects it again.
+    refused(t.k.insert(&dispatcher, "Trip", obj(on_day(json!([collect.clone()])))).await, "invalid", "is a return delivery note in draft");
 
     // ───────────── fuel, services and costs ─────────────
     let v = t.k.update(&dispatcher, "Vehicle", van1, obj(json!({"odometer_km": 9000, "service_every_km": 10000, "last_service_km": 0})), None).await.unwrap();

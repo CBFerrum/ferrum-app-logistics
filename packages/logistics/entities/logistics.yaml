@@ -57,8 +57,8 @@
     - {name: sequence, type: int, in_list: true, description: "The order it is visited in"}
     - {name: kind, type: select, options: [Delivery, Collection], default: Delivery, in_list: true, description: "A collection brings goods back: a return, picked up on the way"}
     - {name: customer, type: link, to: Customer, in_list: true}
-    - {name: delivery_note, type: link, to: DeliveryNote, in_list: true}
-    - {name: return_note, type: link, to: DeliveryNote, description: "A collection's return delivery note, in draft: submitted when the goods are collected, so they are back in stock"}
+    - {name: delivery_note, type: link, to: DeliveryNote, in_list: true, link_filters: {is_return: false}}
+    - {name: return_note, type: link, to: DeliveryNote, link_filters: {is_return: true}, description: "A collection's return delivery note, in draft: submitted when the goods are collected, so they are back in stock"}
     - {name: window_from, type: data, label: Window Opens, description: "HH:MM: the earliest it is expected"}
     - {name: window_to, type: data, label: Window Closes, description: "HH:MM: the latest it is expected"}
     - {name: address, type: text, required: true}
