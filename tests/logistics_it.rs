@@ -5,7 +5,8 @@
 //! inactive, and a vehicle already out; the notes carrying the vehicle; proofs of delivery recorded
 //! only by the trip's driver, once a stop, with who took the goods and their signature or a photo;
 //! completing, at the vehicle's rate, and cancelling; a driver's own stops; a vehicle out again the
-//! same day; collections with their return notes, stops ordered by their windows and proved late;
+//! same day; collections with their return notes, stops ordered by their windows and proved late,
+//! proofs saying when they happened;
 //! fuel logs that never wind the odometer back, services due by the kilometres and by the day;
 //! Fleet Costs; and who may do what.
 
@@ -347,13 +348,23 @@ async fn scenario() {
     refused(t.k.insert(&dan, "ProofOfDelivery", obj(proof(2, "Delivered"))).await, "invalid", "stop 2 is a collection: it is collected, not delivered");
     refused(t.k.insert(&dan, "ProofOfDelivery", obj(proof(1, "Collected"))).await, "invalid", "stop 1 is a delivery: it is delivered, not collected");
     assert_eq!(t.get("DeliveryNote", ret).await["docstatus"].as_i64(), Some(0), "in draft until the goods are collected");
-    t.insert(&dan, "ProofOfDelivery", proof(2, "Collected")).await;
+    // A proof says when it happened, by the phone: not later than now, nor before the trip went out.
+    let when = |at: &str| {
+        let mut v = proof(2, "Collected");
+        v["happened_at"] = json!(at);
+        obj(v)
+    };
+    refused(t.k.insert(&dan, "ProofOfDelivery", when("2099-01-01T09:00:00Z")).await, "invalid", "is later than now");
+    refused(t.k.insert(&dan, "ProofOfDelivery", when("2026-01-05T09:30:00Z")).await, "invalid", "is before the trip went out");
+    let collected = t.insert(&dan, "ProofOfDelivery", proof(2, "Collected")).await;
+    assert!(collected["happened_at"].is_string(), "now, when the phone says nothing");
     assert_eq!(t.get("DeliveryNote", ret).await["docstatus"].as_i64(), Some(1), "the return note submitted: the goods are back");
     refused(t.act(&dispatcher, round, "cancel_trip").await, "invalid", "delivered or collected");
     t.insert(&dan, "ProofOfDelivery", proof(1, "Delivered")).await;
     t.insert(&dan, "ProofOfDelivery", json!({"trip": round.to_string(), "stop": 3, "outcome": "Not Home"})).await;
     let stops = t.get("Trip", round).await["stops"].as_array().unwrap().clone();
     let seen: Vec<(&str, bool)> = stops.iter().map(|s| (s["status"].as_str().unwrap(), s["late"].as_bool().unwrap_or(false))).collect();
+    assert_eq!(stops[1]["delivered_at"], collected["happened_at"], "the stop is done when its proof says");
     // Proved after its day: the stops with windows are late, the one without never is.
     assert_eq!(seen, [("Delivered", false), ("Collected", true), ("Failed", true)]);
     t.act(&dispatcher, round, "complete").await.expect("complete");

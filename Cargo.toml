@@ -13,6 +13,8 @@ ferrum-meta = { git = "https://github.com/CBFerrum/Ferrum", branch = "main" }
 ferrum-domain = { git = "https://github.com/CBFerrum/Ferrum", branch = "main" }
 async-trait = "0.1"
 chrono = { version = "0.4", features = ["serde"] }
+# The workspace's zone at the moment a proof happened (the kernel's own copy).
+chrono-tz = { version = "0.10", default-features = false }
 rust_decimal = { version = "1.43", features = ["serde-with-str", "maths"] }
 serde_json = "1"
 sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls-ring-webpki", "postgres", "uuid", "chrono", "rust_decimal", "json", "migrate", "macros"] }

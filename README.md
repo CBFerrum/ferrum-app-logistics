@@ -4,7 +4,7 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
 - depots, vehicles and drivers;
 - trips dispatched with their stops in order: deliveries from ERP's delivery notes, and collections
   of returns, each in its window;
-- proof of delivery, recorded by the driver;
+- proof of delivery, recorded by the driver, with or without a connection;
 - the fleet's fuel, services and costs.
 
 | | |
@@ -50,8 +50,16 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
 - **Fleet Costs.** A report giving each vehicle's completed trips over a range of days: their
   distance and cost, and its fuel, litres, kilometres by the odometer and litres per 100 km.
 - **A driver's stops.** A driver's page lists the day's trips that are theirs, found by the address
-  they signed in with. It shows each stop's window and whether it delivers or collects, opens its
-  proof already filled in, and links to logging fuel.
+  they signed in with. It shows each stop's window and whether it delivers or collects, records its
+  proof (what happened, who, a photo of the goods or the signature, a note), and links to logging
+  fuel.
+- **Without a connection.** The driver's page opens offline under the app's own worker, from the
+  trips kept on the phone under the workspace's offline lease (Ferrum's `docs/offline.md`). A proof
+  is kept on the phone for the driver alone, photo and all, with the time it happened, and sent
+  when the connection is back: oldest first, each safe to send twice. The server judges a stop late
+  by when its proof says it happened, which may not be later than now (five minutes' grace for the
+  phone's clock) nor before the trip went out. A proof the server refuses stays on the page with
+  its reason until the driver discards it.
 
 ## Develop
 
@@ -60,13 +68,16 @@ cargo test                       # needs FERRUM_LOGISTICS_TEST_DATABASE_URL's da
 cd ui && npm run build && npm run check
 ```
 
+`ui/src/trips.test.ts` covers the driver's page: what a proof needs, what is sent, kept proofs on
+their stops, a lost connection told from a refusal, and the day's trips opened from the phone.
 `tests/logistics_it.rs` walks a delivery day:
 - a trip planned from delivery notes, its stops ordered;
 - dispatch refused for each reason, then dispatched;
 - proofs of delivery, and completing at the vehicle's rate;
 - a driver's own stops;
 - the vehicle out again the same day;
-- a collection with its return note, stops ordered by their windows and proved late;
+- a collection with its return note, stops ordered by their windows and proved late, proofs
+  saying when they happened;
 - fuel logs, services due by the kilometres and by the day, and Fleet Costs;
 - who may do what.
 
@@ -77,12 +88,14 @@ cd ui && npm run build && npm run check
   sort by window, then nearest first: it does not weigh a window against the driving time.
 - A service history of its own: each service shows in the vehicle's history, and its bill is an
   ERP purchase invoice. No fuel cards or telematics feeds.
-- A driver's app that works offline.
+- Offline, the driver's page records proofs with a photo; a signature drawn on the screen, fuel logs
+  and the records pages need a connection. Photos are sent as taken.
 
 ## Changelog
 
 | Version | Highlights |
 |---|---|
+| **0.3.0** | A driver's page that works offline: trips kept on the phone, proofs kept with when they happened and sent when the connection is back, lateness judged by that time. |
 | **0.2.0** | Collections with their return notes, delivery windows and late stops, a vehicle out again the same day, fuel logs, services due, trip costs and Fleet Costs. |
 | **0.1.6** | Rebuilt with Ferrum-Frontend 24c3951: times on the workspace's clock; drafts headed as drafts. |
 | **0.1.5** | Rebuilt with Ferrum-Frontend bb60115: empty numbers read as the server reads them; settings open as their record. |

@@ -1,8 +1,8 @@
 id: logistics
 name: Logistics
-version: 0.2.0
+version: 0.3.0
 publisher: cbferrum
-summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery, and the fleet's fuel, services and costs"
+summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery that works offline, and the fleet's fuel, services and costs"
 description: README.md
 categories: [inventory, sales]
 license: AGPL-3.0-only
@@ -14,7 +14,8 @@ platform: ">=0.3.2, <0.4"
 requires: {erp: ">=0.1"}
 packages: [logistics]
 uninstall: ask
-# Its own interface at /logistics/: today's trips and services due for dispatchers, and a driver's stops.
+# Its own interface at /logistics/: today's trips and services due for dispatchers, and a driver's
+# stops, which open offline under its own worker (ui/public/sw.js).
 ui:
   dist: ui/dist
 contributes:
