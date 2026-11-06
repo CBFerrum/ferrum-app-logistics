@@ -111,10 +111,11 @@
     - {name: signature, type: attach}
     - {name: photo, type: attach}
     - {name: note, type: text}
+    - {name: happened_at, type: datetime, label: When It Happened, no_copy: true, description: "By the driver's phone: a proof sent later, after working offline, keeps its time. Not later than now, nor before the trip went out"}
     - {name: latitude, type: decimal}
     - {name: longitude, type: decimal}
     - {name: recorded_by, type: data, read_only: true, no_copy: true}
-  list: {columns: [trip, stop, outcome, received_by, created_at], sort: created_at desc}
+  list: {columns: [trip, stop, outcome, received_by, happened_at], sort: created_at desc}
 
 - name: FuelLog
   label: Fuel Log

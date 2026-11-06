@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.3.0
+
+A driver's page that works without a connection (FERRUM-INDUSTRY-009).
+
+- The page opens offline under the app's own worker (`/logistics/sw.js`, adapted from Point of
+  Sale's), from the day's trips kept on the phone under the workspace's offline lease; what the
+  lease no longer covers is forgotten at start.
+- Proofs are recorded on the page itself: what happened, who took or handed over the goods, a photo
+  of the goods or the signature, and a note. Each is kept on the phone for the driver alone, with
+  when it happened, and sent when the server can be reached: oldest first, its photo stored once,
+  its record safe to send twice. One the server refuses stays with its reason until discarded.
+- Proofs say when they happened (`happened_at`): not later than now, with five minutes' grace for a
+  phone's clock, nor before the trip went out. A stop's time and whether it is late go by it, on
+  the workspace's clock at that moment.
+
 ## 0.2.0
 
 Windows, collections and the fleet's running costs (FERRUM-INDUSTRY-009).

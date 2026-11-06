@@ -1,11 +1,12 @@
 // Logistics' own interface at /logistics/: today's trips for dispatchers and a driver's stops, with
-// every record in the records frame's lists and forms.
+// every record in the records frame's lists and forms. A driver's stops open without a connection
+// under the app's own worker (public/sw.js).
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { createBrowserRouter, Link, RouterProvider, useRouteError } from "react-router";
-import { routeBase, shell } from "@ferrum/client";
+import { offlineEnv, routeBase, shell, sweep } from "@ferrum/client";
 import { ConfirmHost, EmptyState, ErrorState, Toaster } from "@ferrum/kit";
 import { RequireAuth, setFrameMode } from "@ferrum/records/frame";
 import "./styles.css";
@@ -30,6 +31,13 @@ function Started() {
   useEffect(() => shell().ready(), []);
   return null;
 }
+
+// One that cannot register (a private window, an old browser) leaves the page working online.
+if ("serviceWorker" in navigator) {
+  void navigator.serviceWorker.register(`${routeBase("logistics")}sw.js`, { scope: routeBase("logistics") }).catch(() => {});
+}
+// What this device kept that the workspace's lease no longer covers goes (Ferrum docs/offline.md).
+void sweep(offlineEnv()).catch(() => {});
 
 setFrameMode("app", ["logistics"]);
 
