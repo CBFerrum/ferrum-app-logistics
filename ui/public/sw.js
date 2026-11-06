@@ -32,8 +32,8 @@ self.addEventListener("fetch", (event) => {
   if (url.pathname.startsWith("/_ui/") || url.pathname.startsWith("/_shell/")) event.respondWith(file(req, url));
 });
 
-/** The app's page and the files it names, kept at once: the page that registered this worker
- *  loaded them before the worker could see them. */
+/** The app's page, the files it names and the chunks they import, kept at once: the page that
+ *  registered this worker loaded them before the worker could see them. */
 async function warm() {
   const scope = new URL(self.registration.scope).pathname;
   const res = await fetch(scope, { credentials: "same-origin" });
@@ -43,6 +43,15 @@ async function warm() {
   const cache = await caches.open(FILES);
   const urls = new Set([...html.matchAll(/(?:src|href)="(\/_(?:ui|shell)\/[^"]+)"/g)].map((m) => m[1]));
   await Promise.all([...urls].map((u) => cache.add(u).catch(() => {})));
+  // The chunks the page imports later (the driver's page among them), named in this release's
+  // entry, so the page works offline from its first visit.
+  for (const u of urls) {
+    if (!u.startsWith("/_ui/") || !u.endsWith(".js")) continue;
+    const entry = await cache.match(u, ANY);
+    const js = entry ? await entry.text() : "";
+    const chunks = new Set([...js.matchAll(/"\.\/([\w-]+\.js)"/g)].map((m) => new URL(m[1], new URL(u, self.location.origin)).pathname));
+    await Promise.all([...chunks].map((c) => cache.add(c).catch(() => {})));
+  }
 }
 
 /** The network's page, kept when it is the app's (not a sign-in page it was sent to); the kept
