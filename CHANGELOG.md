@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- The driver's proof dialog takes a signature drawn on the screen, as well as or instead of a photo.
+  It is kept on the phone with the proof, sent with it (stored once, as a PNG), and is the proof's
+  Signature. A delivery or collection needs one or the other.
+- From the 7 November walk: today's trips on the home link to Fleet Costs, and a trip's cost, a
+  vehicle's next service day and its reading are shown formatted ("Cost 223.20", not "223.2").
+
 ## 0.3.1
 
 Found walking it in a browser on 7 November.

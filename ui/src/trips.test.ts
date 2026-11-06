@@ -52,15 +52,16 @@ describe("trips and stops", () => {
 });
 
 describe("working offline", () => {
-  it("asks who and a photo only when goods changed hands", () => {
+  it("asks who, and a photo or a signature, only when goods changed hands", () => {
     expect(missing("Delivered", " ", null)).toBe("Name who took the goods.");
     expect(missing("Collected", "", null)).toBe("Name who handed the goods over.");
-    expect(missing("Delivered", "Bo", null)).toBe("Take a photo of the goods or of the signature.");
+    expect(missing("Delivered", "Bo", null)).toBe("Take a photo of the goods, or have them sign on the screen.");
     expect(missing("Delivered", "Bo", new Blob(["x"]))).toBeNull();
+    expect(missing("Collected", "Ivan", null, new Blob(["signed"]))).toBeNull();
     expect(missing("Not Home", "", null)).toBeNull();
   });
 
-  it("sends a proof with when it happened and its stored photo", () => {
+  it("sends a proof with when it happened and its stored photo or signature", () => {
     expect(proofRecord(proof(2, { photo_url: "/files/door.jpg", note: "  " }))).toEqual({
       trip: "t1",
       stop: 2,
@@ -68,8 +69,10 @@ describe("working offline", () => {
       received_by: "Bo",
       note: null,
       photo: "/files/door.jpg",
+      signature: null,
       happened_at: "2026-11-06T09:30:00.000Z",
     });
+    expect(proofRecord(proof(3, { signature_url: "/files/signature.png" }))).toMatchObject({ photo: null, signature: "/files/signature.png" });
   });
 
   it("shows a kept proof on its pending stop only", () => {
