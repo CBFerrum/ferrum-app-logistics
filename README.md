@@ -19,7 +19,8 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
 
 - **Trips from delivery notes.** A trip's stops come with their address, place and weight, most of
   them from a submitted delivery note. A note is one stop of one open trip: a draft note, or one on
-  another trip, is refused.
+  another trip, is refused. A stop with no weight typed takes its goods': each line's quantity at
+  its item's Weight (kg), the field Logistics adds to ERP's items.
 - **Collections.** A stop may collect instead: goods coming back, with ERP's return delivery note
   for them in draft. The note is submitted when the goods are collected, so they are back in stock.
   A return note is one stop of one open trip too.
@@ -95,6 +96,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.3.4** | A stop with no weight typed takes its goods', from the Weight (kg) Logistics adds to items. |
 | **0.3.3** | Rebuilt with Ferrum-Frontend a64416a: a box whose default is 1 shows ticked. |
 | **0.3.2** | A signature drawn on the driver's page, kept offline with the proof; the home links Fleet Costs and shows costs, dates and readings formatted. |
 | **0.3.1** | Return notes offered only where they belong; a proof sent at once says "Proof saved."; rebuilt with Ferrum-Frontend 922fcfb. |
