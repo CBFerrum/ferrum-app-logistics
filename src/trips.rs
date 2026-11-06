@@ -1,9 +1,13 @@
-//! Trips. A trip's stops are numbered in the order they are visited, its load is their weight, and
-//! its distance is the straight line from the depot through them and back when every one has its
-//! place. Ordering the stops visits the nearest first. Dispatching wants a vehicle on the road that
-//! carries the load, a driver active and licensed on the day, neither out on another trip that
-//! day, and each delivery note submitted and on no other open trip; the notes then carry the
-//! vehicle. A dispatched trip keeps its stops; it completes once each is delivered or failed.
+//! Trips. A trip's stops are numbered in the order they are visited, its load is their weight
+//! (collections' too), and its distance is the straight line from the depot through them and back
+//! when every one has its place. A stop is a delivery, of a submitted delivery note, or a
+//! collection, of a return delivery note in draft that is submitted once the goods are collected;
+//! either may have a window (HH:MM to HH:MM). Ordering the stops visits them by when their windows
+//! open, nearest first among those opening together. Dispatching wants a vehicle on the road that carries the load, a
+//! driver active and licensed on the day, neither out on another trip at the time (a vehicle may
+//! go out again once its trip is completed), and each note on no other open trip; the delivery
+//! notes then carry the vehicle. A dispatched trip keeps its stops; it completes once each is
+//! delivered, collected or failed, its cost then its distance at the vehicle's cost per km.
 
 use crate::geo::{Point, nearest_first, round_trip};
 use crate::{obj, status};
@@ -26,12 +30,26 @@ pub(crate) fn place(doc: &Doc) -> Option<Point> {
     Some((num(la)?, num(lo)?))
 }
 
-/// What a trip visits: each stop's customer, note, address and weight, in order.
-fn route(doc: &Doc) -> Vec<(Option<String>, Option<String>, Option<String>, Decimal)> {
-    rows(doc, "stops")
-        .iter()
-        .map(|r| (s(r, "customer").map(str::to_string), s(r, "delivery_note").map(str::to_string), s(r, "address").map(str::to_string), d(r, "weight_kg")))
-        .collect()
+/// A time of day as `HH:MM`, or why it is not one.
+pub(crate) fn clock(v: &str) -> Option<String> {
+    chrono::NaiveTime::parse_from_str(v.trim(), "%H:%M").ok().map(|t| t.format("%H:%M").to_string())
+}
+
+/// Stops visited by when their windows open (one without a window opens at the start of the day),
+/// nearest first among those opening together: `nearest` is the order nearest first.
+/// ponytail: a sort, not a route weighing windows against driving time; that is a solver's job
+/// (VROOM, say) once road times come from a maps provider (BLOCK-MAPS-KEY).
+pub(crate) fn by_windows(nearest: Vec<usize>, opens: &[Option<String>]) -> Vec<usize> {
+    let mut order = nearest;
+    order.sort_by_key(|i| opens.get(*i).cloned().flatten().unwrap_or_else(|| "00:00".into()));
+    order
+}
+
+/// What a trip visits: each stop's kind, customer, notes, address and weight, in order. A window
+/// may move once the trip is out.
+fn route(doc: &Doc) -> Vec<(Vec<Option<String>>, Decimal)> {
+    const WHAT: [&str; 5] = ["kind", "customer", "delivery_note", "return_note", "address"];
+    rows(doc, "stops").iter().map(|r| (WHAT.iter().map(|k| s(r, k).map(str::to_string)).collect(), d(r, "weight_kg"))).collect()
 }
 
 #[async_trait]
@@ -78,6 +96,40 @@ impl DocHook for TripHook {
         if stops.iter().any(|r| d(r, "weight_kg") < Decimal::ZERO) {
             return Err(Error::field("stops", "a stop's weight is zero or more"));
         }
+        for (i, r) in stops.iter().enumerate() {
+            let n = i + 1;
+            let window = |k: &str| match s(r, k).map(str::trim).filter(|v| !v.is_empty()) {
+                None => Ok(None),
+                Some(v) => clock(v).map(Some).ok_or_else(|| Error::field("stops", format!("stop {n}'s window is a time like 09:30, not {v}"))),
+            };
+            if let (Some(from), Some(to)) = (window("window_from")?, window("window_to")?)
+                && to < from
+            {
+                return Err(Error::field("stops", format!("stop {n}'s window closes before it opens")));
+            }
+            let collection = s(r, "kind") == Some("Collection");
+            if collection && id(r, "delivery_note").is_some() {
+                return Err(Error::field("stops", format!("stop {n} collects: its goods come with a return note, not a delivery note")));
+            }
+            if !collection && id(r, "return_note").is_some() {
+                return Err(Error::field("stops", format!("stop {n} delivers: a return note goes with a collection")));
+            }
+            if let Some(back) = id(r, "return_note") {
+                let row: Option<(i16, bool, Option<String>)> =
+                    sqlx::query_as("select docstatus, coalesce(is_return, false), number from e_delivery_note where tenant_id = $1 and id = $2")
+                        .bind(hc.ctx.tenant)
+                        .bind(back)
+                        .fetch_optional(&mut **hc.tx)
+                        .await?;
+                let (docstatus, is_return, _) = row.ok_or_else(|| Error::field("stops", "a return note there is not this workspace's"))?;
+                if !is_return || (docstatus != 0 && status(doc, "Planned") == "Planned") {
+                    return Err(Error::field(
+                        "stops",
+                        format!("stop {n}'s return note is a return delivery note in draft, submitted when the goods are collected"),
+                    ));
+                }
+            }
+        }
         let mut notes = HashSet::new();
         for r in &stops {
             let Some(note) = id(r, "delivery_note") else { continue };
@@ -105,6 +157,24 @@ impl DocHook for TripHook {
             .await?;
             if let Some(trip) = other {
                 return Err(Error::field("stops", format!("delivery note {number} is on {trip} already")));
+            }
+        }
+        for r in &stops {
+            let Some(back) = id(r, "return_note") else { continue };
+            if !notes.insert(back) {
+                return Err(Error::field("stops", "a return note is one stop of a trip"));
+            }
+            let other: Option<String> = sqlx::query_scalar(
+                "select t.number from e_trip t join e_trip__stops st on st.tenant_id = t.tenant_id and st.parent_id = t.id \
+                 where t.tenant_id = $1 and st.return_note = $2 and t.id <> $3 and t.status in ('Planned', 'Dispatched') limit 1",
+            )
+            .bind(hc.ctx.tenant)
+            .bind(back)
+            .bind(id(doc, "id").unwrap_or_else(Uuid::nil))
+            .fetch_optional(&mut **hc.tx)
+            .await?;
+            if let Some(trip) = other {
+                return Err(Error::field("stops", format!("that return note is collected on {trip} already")));
             }
         }
         Ok(())
@@ -142,7 +212,8 @@ impl DocHook for TripHook {
                     .map(place)
                     .collect::<Option<_>>()
                     .ok_or_else(|| Error::field("stops", "each stop needs its latitude and longitude to order them"))?;
-                let order = nearest_first(start, &places);
+                let opens: Vec<Option<String>> = stops.iter().map(|r| s(r, "window_from").and_then(clock)).collect();
+                let order = by_windows(nearest_first(start, &places), &opens);
                 let reordered: Vec<Value> = order.into_iter().map(|i| Value::Object(stops[i].clone())).collect();
                 let saved = hc.kernel.update_tx(&system, hc.tx, "Trip", trip, obj(json!({"stops": reordered})), None).await?;
                 Ok(Some(json!({"distance_km": saved.get("distance_km"), "stops": rows(&saved, "stops").iter().map(|r| s(r, "address")).collect::<Vec<_>>()})))
@@ -167,12 +238,21 @@ impl DocHook for TripHook {
                 if !open.is_empty() {
                     return Err(Error::invalid(format!("stops {open:?} have no proof of delivery yet")));
                 }
-                hc.kernel.set_values_tx(&system, hc.tx, "Trip", trip, obj(json!({"status": "Completed", "completed_at": now}))).await?;
-                Ok(Some(json!({"status": "Completed"})))
+                // Its cost: the distance at the vehicle's rate, when both are known.
+                let rate: Option<Decimal> = sqlx::query_scalar("select cost_per_km from e_vehicle where tenant_id = $1 and id = $2")
+                    .bind(hc.ctx.tenant)
+                    .bind(id(doc, "vehicle"))
+                    .fetch_optional(&mut **hc.tx)
+                    .await?
+                    .flatten();
+                let km = doc.get("distance_km").filter(|v| !v.is_null()).map(|_| d(doc, "distance_km"));
+                let cost = km.zip(rate).map(|(km, rate)| money((km * rate).round_dp(2)));
+                hc.kernel.set_values_tx(&system, hc.tx, "Trip", trip, obj(json!({"status": "Completed", "completed_at": now, "cost": cost}))).await?;
+                Ok(Some(json!({"status": "Completed", "cost": cost})))
             }
             "cancel_trip" => {
-                if rows(doc, "stops").iter().any(|r| status(r, "Pending") == "Delivered") {
-                    return Err(Error::invalid("some of this trip is delivered: complete it, failing the rest"));
+                if rows(doc, "stops").iter().any(|r| matches!(status(r, "Pending"), "Delivered" | "Collected")) {
+                    return Err(Error::invalid("some of this trip is delivered or collected: complete it, failing the rest"));
                 }
                 hc.kernel.set_values_tx(&system, hc.tx, "Trip", trip, obj(json!({"status": "Cancelled"}))).await?;
                 Ok(Some(json!({"status": "Cancelled"})))
@@ -233,4 +313,17 @@ async fn dispatchable(hc: &mut HookCtx<'_>, doc: &Doc) -> Result<()> {
         return Err(Error::invalid(format!("the vehicle or the driver is out on {other} that day")));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{by_windows, clock};
+
+    #[test]
+    fn windows_order_the_day() {
+        assert_eq!((clock("9:05"), clock("23:59"), clock("24:00"), clock("noon")), (Some("09:05".into()), Some("23:59".into()), None, None));
+        let opens = [Some("14:00".to_string()), None, Some("09:00".to_string()), Some("09:00".to_string())];
+        // Nearest first is 3, 0, 1, 2: the windowless stop goes first, then by opening, nearest first among equals.
+        assert_eq!(by_windows(vec![3, 0, 1, 2], &opens), vec![1, 3, 2, 0]);
+    }
 }

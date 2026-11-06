@@ -1,7 +1,7 @@
 package: logistics
 version: 0.1.0
 label: Logistics
-description: "Depots, vehicles and drivers, trips dispatched with their stops in order, and proof of delivery"
+description: "Depots, vehicles and drivers, trips dispatched with their stops in order and in their windows, deliveries and collections proved, and the fleet's fuel, services and costs"
 depends: [core, selling]
 
 modules:
@@ -9,7 +9,7 @@ modules:
     label: Logistics
     icon: truck
     order: 53
-    items: [Trip, ProofOfDelivery, Vehicle, Driver, Depot]
+    items: [Trip, ProofOfDelivery, Vehicle, FuelLog, Driver, Depot]
 
 roles:
   - name: Fleet Dispatcher
@@ -20,6 +20,7 @@ roles:
       - {entity: Driver, read: true, write: true, create: true, export: true}
       - {entity: Trip, read: true, write: true, create: true, export: true}
       - {entity: ProofOfDelivery, read: true, create: true, export: true}
+      - {entity: FuelLog, read: true, write: true, create: true, export: true}
       - {entity: Customer, read: true}
       - {entity: DeliveryNote, read: true}
   - name: Driver
@@ -29,6 +30,7 @@ roles:
       - {entity: Vehicle, read: true}
       - {entity: Depot, read: true}
       - {entity: ProofOfDelivery, read: true, create: true}
+      - {entity: FuelLog, read: true, create: true}
 
 personal_data:
   - {entity: Driver, match: email, phone: phone, name: full_name, erase: [full_name, email, phone, licence_number, licence_expires_on]}

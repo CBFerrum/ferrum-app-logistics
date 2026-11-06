@@ -18,7 +18,7 @@ impl Site for LogisticsSite {
         }
         let day = match req.query.get("day").and_then(Value::as_str) {
             Some(d) => NaiveDate::parse_from_str(d, "%Y-%m-%d").map_err(|_| Error::field("day", "is YYYY-MM-DD"))?,
-            None => chrono::Utc::now().date_naive(),
+            None => user.today(),
         };
         let email = user.email.to_lowercase();
         let mut trips = vec![];
