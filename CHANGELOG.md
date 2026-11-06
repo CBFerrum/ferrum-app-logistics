@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.4
+
+A stop's weight from its goods. Logistics adds Weight (kg) to ERP's items, and a stop naming a
+delivery note (or a return note) with no weight typed takes the sum of its lines' quantities at
+their items' weights, worked out on the server when the trip is saved. A weight typed stays as
+typed. Dispatch's load check then rests on the goods, not only on what was typed (found on the 7
+November walk: a stop made without its weight read 0 kg).
+
 ## 0.3.3
 
 Rebuilt with Ferrum-Frontend a64416a: a new record's box whose default is 1 shows ticked, as it is saved.

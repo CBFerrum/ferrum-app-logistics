@@ -1,5 +1,5 @@
 //! Trips. A trip's stops are numbered in the order they are visited, its load is their weight
-//! (collections' too), and its distance is the straight line from the depot through them and back
+//! (collections' too; a stop with no weight typed takes its goods', each line at its item's weight), and its distance is the straight line from the depot through them and back
 //! when every one has its place. A stop is a delivery, of a submitted delivery note, or a
 //! collection, of a return delivery note in draft that is submitted once the goods are collected;
 //! either may have a window (HH:MM to HH:MM). Ordering the stops visits them by when their windows
@@ -66,6 +66,23 @@ impl DocHook for TripHook {
         let mut stops = rows(doc, "stops");
         for (i, r) in stops.iter_mut().enumerate() {
             r.insert("sequence".into(), json!(i + 1));
+        }
+        // A stop with no weight typed takes its goods': each line's quantity at its item's Weight
+        // (kg), Logistics' field on Item. One typed stays as typed.
+        for r in stops.iter_mut().filter(|r| d(r, "weight_kg") <= Decimal::ZERO) {
+            let Some(note) = id(r, "delivery_note").or_else(|| id(r, "return_note")) else { continue };
+            let goods: Option<Decimal> = sqlx::query_scalar(
+                "select sum(abs(coalesce(i.stock_qty, i.qty)) * coalesce((it.ext->>'logistics_weight_kg')::numeric, 0)) \
+                 from e_delivery_note__items i join e_item it on it.tenant_id = i.tenant_id and it.id = i.item \
+                 where i.tenant_id = $1 and i.parent_id = $2",
+            )
+            .bind(hc.ctx.tenant)
+            .bind(note)
+            .fetch_one(&mut **hc.tx)
+            .await?;
+            if let Some(kg) = goods.filter(|kg| *kg > Decimal::ZERO) {
+                r.insert("weight_kg".into(), money(kg));
+            }
         }
         let load: Decimal = stops.iter().map(|r| d(r, "weight_kg")).sum();
         let depot = match id(doc, "depot") {
