@@ -178,6 +178,9 @@ async fn scenario() {
     let fay_d = uid(&t.insert(&dispatcher, "Driver", driver("Fay", "fay@fleet.test", "2028-06-30", "Active")).await["id"]);
     let gus_d = uid(&t.insert(&dispatcher, "Driver", driver("Gus", "gus@fleet.test", "2028-06-30", "Inactive")).await["id"]);
 
+    // A hamper weighs 2.5 kg: a stop with its weight typed keeps it, one without takes its goods'.
+    t.k.update(&a, "Item", parcel, obj(json!({"logistics_weight_kg": "2.5"})), None).await.expect("a hamper's weight");
+
     // ───────────── a trip planned ─────────────
     let day = "2026-11-10";
     let stop = |dn: Option<Uuid>, address: &str, lat: &str, lng: &str, kg: &str| json!({"delivery_note": dn.map(|d| d.to_string()), "address": address, "latitude": lat, "longitude": lng, "weight_kg": kg});
@@ -193,7 +196,18 @@ async fn scenario() {
     refused(t.k.insert(&dispatcher, "Trip", obj(trip(van1, dan_d, json!([near.clone(), near.clone()])))).await, "invalid", "one stop of a trip");
     let t1 = t.insert(&dispatcher, "Trip", trip(van1, dan_d, json!([far.clone(), near.clone(), mid.clone()]))).await;
     let t1_id = uid(&t1["id"]);
-    assert_eq!(dec(&t1["total_weight"]), 250.0);
+    assert_eq!(dec(&t1["total_weight"]), 250.0, "the weights typed, not the goods'");
+    let eli = uid(&t.insert(&a, "Customer", customer("Eli Eats")).await["id"]);
+    let three = uid(&t
+        .insert(
+            &a,
+            "DeliveryNote",
+            json!({"company": company.to_string(), "customer": eli.to_string(), "set_warehouse": stores["id"], "items": [{"item": parcel.to_string(), "qty": "3", "rate": "500"}]}),
+        )
+        .await["id"]);
+    t.k.submit(&a, "DeliveryNote", three, None).await.expect("submitted");
+    let weighed = t.insert(&dispatcher, "Trip", trip(bike, fay_d, json!([{"delivery_note": three.to_string(), "address": "Eli Eats, 5 Hill Road"}]))).await;
+    assert_eq!((dec(&weighed["stops"][0]["weight_kg"]), dec(&weighed["total_weight"])), (7.5, 7.5), "three hampers at 2.5 kg");
     let unordered = dec(&t1["distance_km"]);
     assert!(unordered > 0.0, "a distance when every stop has its place");
     let ordered = t.act(&dispatcher, t1_id, "plan_route").await.expect("ordered");
