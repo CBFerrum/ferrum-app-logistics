@@ -1,9 +1,10 @@
-// Today's trips for dispatchers: each with its vehicle, driver, load, and how many stops are done.
-// A trip opens its record; drivers have their own page of stops.
+// Today's trips for dispatchers: each with its load, distance, how many stops are done and, once
+// completed, its cost; then the vehicles whose service is due. A trip or a vehicle opens its
+// record; drivers have their own page of stops.
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { api, docPath } from "@ferrum/client";
+import { api, docPath, todayIso } from "@ferrum/client";
 import { Badge, ErrorState, PageLoading, statusTone, useShellTitle } from "@ferrum/kit";
 
 export interface Row {
@@ -14,22 +15,21 @@ export interface Row {
 export const rows = (entity: string, filters: unknown[], extra: Record<string, string | number> = {}) =>
   api.get<{ rows: Row[] }>(docPath(entity), { filters: JSON.stringify(filters), limit: 500, ...extra }).then((r) => r.rows);
 
-export const today = () => new Date().toISOString().slice(0, 10);
-
 /** Trips read whole: a list's rows come without their stops. ponytail: one request a trip, a day's
  * worth; a summary endpoint when a day has hundreds. */
 export const whole = (list: Row[]) => Promise.all(list.map((t) => api.get<Row>(docPath("Trip", t.id))));
 
-/** A trip's stops: how many are done (delivered or failed) of how many. */
+/** A trip's stops: how many are done (delivered, collected or failed) of how many. */
 export function progress(trip: Row): { done: number; of: number } {
   const stops = Array.isArray(trip.stops) ? (trip.stops as Row[]) : [];
-  return { done: stops.filter((s) => s.status === "Delivered" || s.status === "Failed").length, of: stops.length };
+  return { done: stops.filter((s) => (s.status ?? "Pending") !== "Pending").length, of: stops.length };
 }
 
 export function Home() {
   useShellTitle("Logistics");
-  const day = today();
+  const day = todayIso();
   const q = useQuery({ queryKey: ["logistics", "trips", day], queryFn: async () => whole(await rows("Trip", [["date", "eq", day]], { sort: "number asc" })), refetchInterval: 30_000 });
+  const due = useQuery({ queryKey: ["logistics", "service-due"], queryFn: () => rows("Vehicle", [["service_due", "eq", true]], { sort: "registration asc" }) });
   if (q.isPending) return <PageLoading />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   return (
@@ -51,11 +51,25 @@ export function Home() {
                 {String(t.total_weight ?? 0)} kg{t.distance_km ? ` · ${String(t.distance_km)} km` : ""}
               </span>
               <span>{`${p.done} of ${p.of} stops done`}</span>
+              {t.cost != null && <span className="faint">{`Cost ${String(t.cost)}`}</span>}
               <Badge tone={statusTone(String(t.status))}>{String(t.status)}</Badge>
             </Link>
           );
         })}
       </div>
+      {!!due.data?.length && (
+        <section className="stack" aria-label="Service due">
+          <h2>Service due</h2>
+          <ul className="stack">
+            {due.data.map((v) => (
+              <li key={v.id}>
+                <Link to={`/e/Vehicle/${v.id}`}>{String(v.registration ?? "")}</Link>
+                <span className="faint">{v.next_service_on ? ` · by ${String(v.next_service_on)}` : ""}{v.odometer_km != null ? ` · ${String(v.odometer_km)} km` : ""}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }

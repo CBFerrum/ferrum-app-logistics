@@ -1,8 +1,8 @@
 id: logistics
 name: Logistics
-version: 0.1.6
+version: 0.2.0
 publisher: cbferrum
-summary: "Depots, vehicles and drivers, trips dispatched with their stops in order, and proof of delivery"
+summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery, and the fleet's fuel, services and costs"
 description: README.md
 categories: [inventory, sales]
 license: AGPL-3.0-only
@@ -14,7 +14,7 @@ platform: ">=0.3.2, <0.4"
 requires: {erp: ">=0.1"}
 packages: [logistics]
 uninstall: ask
-# Its own interface at /logistics/: today's trips for dispatchers, and a driver's stops.
+# Its own interface at /logistics/: today's trips and services due for dispatchers, and a driver's stops.
 ui:
   dist: ui/dist
 contributes:
@@ -22,7 +22,7 @@ contributes:
     - id: logistics
       route: logistics
       title: Logistics
-      description: Trips, drivers' stops and proof of delivery
+      description: Trips, drivers' stops, proof of delivery and the fleet
       icon: truck
       color: "#1d4ed8"
       roles: [Fleet Dispatcher, Driver]
@@ -30,3 +30,4 @@ contributes:
     - {id: logistics, package: logistics, path: "logistics/e/{entity}/{id}", list: "logistics/e/{entity}"}
   shell.create:
     - {id: trip, label: Trip, path: logistics/e/Trip/new, entity: Trip}
+    - {id: fuel, label: Fuel Log, path: logistics/e/FuelLog/new, entity: FuelLog}
