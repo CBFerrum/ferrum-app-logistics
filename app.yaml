@@ -1,6 +1,6 @@
 id: logistics
 name: Logistics
-version: 0.3.1
+version: 0.3.2
 publisher: cbferrum
 summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery that works offline, and the fleet's fuel, services and costs"
 description: README.md
