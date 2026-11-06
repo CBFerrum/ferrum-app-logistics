@@ -95,6 +95,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.3.3** | Rebuilt with Ferrum-Frontend a64416a: a box whose default is 1 shows ticked. |
 | **0.3.2** | A signature drawn on the driver's page, kept offline with the proof; the home links Fleet Costs and shows costs, dates and readings formatted. |
 | **0.3.1** | Return notes offered only where they belong; a proof sent at once says "Proof saved."; rebuilt with Ferrum-Frontend 922fcfb. |
 | **0.3.0** | A driver's page that works offline: trips kept on the phone, proofs kept with when they happened and sent when the connection is back, lateness judged by that time. |

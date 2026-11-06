@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.3
+
+Rebuilt with Ferrum-Frontend a64416a: a new record's box whose default is 1 shows ticked, as it is saved.
+
 ## 0.3.2
 
 - The driver's proof dialog takes a signature drawn on the screen, as well as or instead of a photo.
