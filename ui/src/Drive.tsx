@@ -1,11 +1,12 @@
 // A driver's page: today's dispatched trips that are theirs (from /api/app/logistics/drive, which
 // finds them by the address they signed in with), each stop in order with its address, whether it
-// delivers or collects and its window, and its proof recorded here. It works without a
+// delivers or collects and its window, and its proof recorded here, with a photo or a signature
+// drawn on the screen. It works without a
 // connection: the trips are kept on the phone, and a proof is kept there with when it happened
 // until it is sent (./offline). Fuel is logged with a connection.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
 import { Link } from "react-router";
 import { errorMessage, formatMoment, newKey, todayIso } from "@ferrum/client";
 import { Badge, Button, Dialog, EmptyState, ErrorState, Field, PageLoading, statusTone, toast, useShellTitle } from "@ferrum/kit";
@@ -141,11 +142,12 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
   const [receivedBy, setReceivedBy] = useState("");
   const [note, setNote] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+  const [signature, setSignature] = useState<Blob | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const handed = outcome === "Delivered" || outcome === "Collected";
   const save = async () => {
-    const why = missing(outcome, receivedBy, photo);
+    const why = missing(outcome, receivedBy, photo, signature);
     if (why) return setError(why);
     const p: Proof = {
       key: newKey(),
@@ -156,6 +158,7 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
       note,
       photo: handed ? photo : null,
       photo_name: handed ? (photo?.name ?? "") : "",
+      signature: handed ? signature : null,
       happened_at: new Date().toISOString(),
     };
     setBusy(true);
@@ -198,8 +201,13 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
           </Field>
         )}
         {handed && (
-          <Field label="Photo of the goods or the signature" required>
+          <Field label="Photo of the goods or the signature">
             <input className="input" type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
+          </Field>
+        )}
+        {handed && (
+          <Field label="Or they sign here">
+            <SignaturePad onChange={setSignature} />
           </Field>
         )}
         <Field label="Note">
@@ -212,5 +220,75 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
         )}
       </div>
     </Dialog>
+  );
+}
+
+/** A signature drawn on the screen with a finger or a pen, kept as a PNG on white; none until a
+ *  line is drawn, and none again once cleared. */
+function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  const last = useRef<{ x: number; y: number } | null>(null);
+  const drawn = useRef(false);
+  const blank = () => {
+    const c = ref.current;
+    const g = c?.getContext("2d");
+    if (!c || !g) return;
+    g.fillStyle = "#fff";
+    g.fillRect(0, 0, c.width, c.height);
+    drawn.current = false;
+  };
+  useEffect(blank, []);
+  // The canvas keeps its own pixels whatever size it is shown at.
+  const at = (e: Pointer<HTMLCanvasElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return { x: ((e.clientX - r.left) * e.currentTarget.width) / r.width, y: ((e.clientY - r.top) * e.currentTarget.height) / r.height };
+  };
+  const draw = (e: Pointer<HTMLCanvasElement>) => {
+    const from = last.current;
+    const g = e.currentTarget.getContext("2d");
+    if (!from || !g) return;
+    const to = at(e);
+    g.strokeStyle = "#111";
+    g.lineWidth = 4;
+    g.lineCap = "round";
+    g.beginPath();
+    g.moveTo(from.x, from.y);
+    g.lineTo(to.x, to.y);
+    g.stroke();
+    last.current = to;
+    drawn.current = true;
+  };
+  const end = (e: Pointer<HTMLCanvasElement>) => {
+    if (!last.current) return;
+    last.current = null;
+    if (drawn.current) e.currentTarget.toBlob((png) => onChange(png), "image/png");
+  };
+  return (
+    <div className="stack">
+      <canvas
+        ref={ref}
+        width={600}
+        height={200}
+        role="img"
+        aria-label="Signature: draw it here"
+        style={{ width: "100%", height: 140, touchAction: "none", borderRadius: 6, border: "1px solid var(--border, #ccc)" }}
+        onPointerDown={(e) => {
+          e.currentTarget.setPointerCapture(e.pointerId);
+          last.current = at(e);
+        }}
+        onPointerMove={draw}
+        onPointerUp={end}
+        onPointerCancel={end}
+      />
+      <Button
+        size="sm"
+        onClick={() => {
+          blank();
+          onChange(null);
+        }}
+      >
+        Clear the signature
+      </Button>
+    </div>
   );
 }

@@ -1,10 +1,10 @@
 // Today's trips for dispatchers: each with its load, distance, how many stops are done and, once
 // completed, its cost; then the vehicles whose service is due. A trip or a vehicle opens its
-// record; drivers have their own page of stops.
+// record; drivers have their own page of stops, and Fleet Costs gives each vehicle's over a range.
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { api, docPath, todayIso } from "@ferrum/client";
+import { api, docPath, formatDate, formatDecimal, formatValue, todayIso } from "@ferrum/client";
 import { Badge, ErrorState, PageLoading, statusTone, useShellTitle } from "@ferrum/kit";
 
 export interface Row {
@@ -39,6 +39,7 @@ export function Home() {
         <span className="row">
           <Link to="/drive">Your stops</Link>
           <Link to="/e/Trip/new">New trip</Link>
+          <Link to="/r/logistics_fleet_costs">Fleet costs</Link>
         </span>
       </header>
       <div className="np-columns">
@@ -48,10 +49,10 @@ export function Home() {
             <Link key={t.id} className="card card-pad stack" to={`/e/Trip/${t.id}`}>
               <strong>{String(t.number ?? "")}</strong>
               <span className="faint">
-                {String(t.total_weight ?? 0)} kg{t.distance_km ? ` · ${String(t.distance_km)} km` : ""}
+                {formatDecimal(t.total_weight ?? 0)} kg{t.distance_km ? ` · ${formatDecimal(t.distance_km)} km` : ""}
               </span>
               <span>{`${p.done} of ${p.of} stops done`}</span>
-              {t.cost != null && <span className="faint">{`Cost ${String(t.cost)}`}</span>}
+              {t.cost != null && <span className="faint">{`Cost ${formatValue({ type: "currency" }, t.cost)}`}</span>}
               <Badge tone={statusTone(String(t.status))}>{String(t.status)}</Badge>
             </Link>
           );
@@ -64,7 +65,7 @@ export function Home() {
             {due.data.map((v) => (
               <li key={v.id}>
                 <Link to={`/e/Vehicle/${v.id}`}>{String(v.registration ?? "")}</Link>
-                <span className="faint">{v.next_service_on ? ` · by ${String(v.next_service_on)}` : ""}{v.odometer_km != null ? ` · ${String(v.odometer_km)} km` : ""}</span>
+                <span className="faint">{v.next_service_on ? ` · by ${formatDate(v.next_service_on)}` : ""}{v.odometer_km != null ? ` · ${formatDecimal(v.odometer_km, 0)} km` : ""}</span>
               </li>
             ))}
           </ul>
