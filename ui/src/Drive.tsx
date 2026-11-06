@@ -31,20 +31,25 @@ export function Drive() {
   const q = useQuery({ queryKey: ["logistics", "drive", day], queryFn: () => loadTrips(day), refetchInterval: 60_000 });
   const kept = useQuery({ queryKey: ["logistics", "kept"], queryFn: keptProofs });
   const [proving, setProving] = useState<{ trip: Row; stop: Row; outcome: string } | null>(null);
-  const sendKept = useCallback(() => {
-    void flush()
-      .then((n) => {
-        if (n) toast(n === 1 ? "A proof kept on this phone was sent." : `${n} proofs kept on this phone were sent.`);
-      })
-      .catch(() => {})
-      .finally(() => void qc.invalidateQueries({ queryKey: ["logistics"] }));
-  }, [qc]);
+  // `quiet` right after a proof is saved: it was said already, and the waiting line shows what is left.
+  const sendKept = useCallback(
+    (quiet = false) => {
+      void flush()
+        .then((n) => {
+          if (n && !quiet) toast(n === 1 ? "A proof kept on this phone was sent." : `${n} proofs kept on this phone were sent.`);
+        })
+        .catch(() => {})
+        .finally(() => void qc.invalidateQueries({ queryKey: ["logistics"] }));
+    },
+    [qc],
+  );
   useEffect(() => {
-    sendKept();
-    window.addEventListener("online", sendKept);
-    const every = setInterval(sendKept, 60_000);
+    const go = () => sendKept();
+    go();
+    window.addEventListener("online", go);
+    const every = setInterval(go, 60_000);
     return () => {
-      window.removeEventListener("online", sendKept);
+      window.removeEventListener("online", go);
       clearInterval(every);
     };
   }, [sendKept]);
@@ -60,7 +65,7 @@ export function Drive() {
       {waiting > 0 && (
         <p role="status" className="row">
           <span>{waiting === 1 ? "1 proof is kept on this phone, to send." : `${waiting} proofs are kept on this phone, to send.`}</span>
-          <Button size="sm" onClick={sendKept}>
+          <Button size="sm" onClick={() => sendKept()}>
             Send now
           </Button>
         </p>
@@ -119,7 +124,8 @@ export function Drive() {
           onClose={() => setProving(null)}
           onDone={() => {
             setProving(null);
-            sendKept();
+            toast("Proof saved.");
+            sendKept(true);
           }}
         />
       )}
