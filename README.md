@@ -51,11 +51,11 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
   distance and cost, and its fuel, litres, kilometres by the odometer and litres per 100 km.
 - **A driver's stops.** A driver's page lists the day's trips that are theirs, found by the address
   they signed in with. It shows each stop's window and whether it delivers or collects, records its
-  proof (what happened, who, a photo of the goods or the signature, a note), and links to logging
-  fuel.
+  proof (what happened, who, a photo of the goods or a signature drawn on the screen, a note), and
+  links to logging fuel. Today's trips on the app's home link to Fleet Costs.
 - **Without a connection.** The driver's page opens offline under the app's own worker, from the
   trips kept on the phone under the workspace's offline lease (Ferrum's `docs/offline.md`). A proof
-  is kept on the phone for the driver alone, photo and all, with the time it happened, and sent
+  is kept on the phone for the driver alone, photo and signature and all, with the time it happened, and sent
   when the connection is back: oldest first, each safe to send twice. The server judges a stop late
   by when its proof says it happened, which may not be later than now (five minutes' grace for the
   phone's clock) nor before the trip went out. A proof the server refuses stays on the page with
@@ -88,13 +88,14 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
   sort by window, then nearest first: it does not weigh a window against the driving time.
 - A service history of its own: each service shows in the vehicle's history, and its bill is an
   ERP purchase invoice. No fuel cards or telematics feeds.
-- Offline, the driver's page records proofs with a photo; a signature drawn on the screen, fuel logs
-  and the records pages need a connection. Photos are sent as taken.
+- Offline, the driver's page records proofs with a photo or a signature drawn on the screen; fuel
+  logs and the records pages need a connection. Photos are sent as taken.
 
 ## Changelog
 
 | Version | Highlights |
 |---|---|
+| **0.3.2** | A signature drawn on the driver's page, kept offline with the proof; the home links Fleet Costs and shows costs, dates and readings formatted. |
 | **0.3.1** | Return notes offered only where they belong; a proof sent at once says "Proof saved."; rebuilt with Ferrum-Frontend 922fcfb. |
 | **0.3.0** | A driver's page that works offline: trips kept on the phone, proofs kept with when they happened and sent when the connection is back, lateness judged by that time. |
 | **0.2.0** | Collections with their return notes, delivery windows and late stops, a vehicle out again the same day, fuel logs, services due, trip costs and Fleet Costs. |

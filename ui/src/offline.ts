@@ -1,6 +1,6 @@
 // A driver on the road without a connection (Ferrum docs/offline.md). The day's trips are kept on
 // this phone under the workspace's lease, so the driver's page opens offline. A proof recorded
-// offline is kept for the driver alone, photo and all, with the time it happened, until it is
+// offline is kept for the driver alone, photo and signature and all, with the time it happened, until it is
 // sent: oldest first, each safe to send again (its key), stopping at the first the server cannot
 // be reached for. One the server refuses stays, with its reason, until the driver discards it.
 
@@ -66,19 +66,23 @@ export interface Proof {
   photo_name: string;
   /** The photo's address once stored, so a proof sent again does not store it twice. */
   photo_url?: string;
+  /** A signature drawn on the screen, as a PNG (none on proofs kept before 0.3.2). */
+  signature?: Blob | null;
+  signature_url?: string;
   happened_at: string;
   /** Why the server would not take it. */
   refused?: string;
 }
 
-/** What a proof still needs before it is kept: who, and a photo, when goods changed hands. */
-export function missing(outcome: string, receivedBy: string, photo: Blob | null): string | null {
+/** What a proof still needs before it is kept: who, and a photo or a signature, when goods changed
+ *  hands. */
+export function missing(outcome: string, receivedBy: string, photo: Blob | null, signature: Blob | null = null): string | null {
   if (outcome !== "Delivered" && outcome !== "Collected") return null;
   if (!receivedBy.trim()) return outcome === "Collected" ? "Name who handed the goods over." : "Name who took the goods.";
-  return photo ? null : "Take a photo of the goods or of the signature.";
+  return photo || signature ? null : "Take a photo of the goods, or have them sign on the screen.";
 }
 
-/** The proof's record, its photo stored. */
+/** The proof's record, its photo and signature stored. */
 export function proofRecord(p: Proof): Record<string, unknown> {
   return {
     trip: p.trip,
@@ -87,6 +91,7 @@ export function proofRecord(p: Proof): Record<string, unknown> {
     received_by: p.received_by.trim() || null,
     note: p.note.trim() || null,
     photo: p.photo_url ?? null,
+    signature: p.signature_url ?? null,
     happened_at: p.happened_at,
   };
 }
@@ -138,11 +143,16 @@ export const keptProofs = () =>
     () => [],
   );
 
-/** Sends a proof: its photo stored first (once), then its record, safe to send again. */
+/** Sends a proof: its photo and signature stored first (once each), then its record, safe to send
+ *  again. */
 export async function sendProof(p: Proof): Promise<void> {
   if (p.photo && !p.photo_url) {
     const file = new File([p.photo], p.photo_name || "proof.jpg", { type: p.photo.type || "image/jpeg" });
     p.photo_url = (await uploadFile(file)).url;
+    await keepProof(p).catch(() => {});
+  }
+  if (p.signature && !p.signature_url) {
+    p.signature_url = (await uploadFile(new File([p.signature], "signature.png", { type: "image/png" }))).url;
     await keepProof(p).catch(() => {});
   }
   await api.post(docPath("ProofOfDelivery"), proofRecord(p), { idempotencyKey: p.key });
