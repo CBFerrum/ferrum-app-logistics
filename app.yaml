@@ -1,6 +1,6 @@
 id: logistics
 name: Logistics
-version: 0.1.4
+version: 0.1.5
 publisher: cbferrum
 summary: "Depots, vehicles and drivers, trips dispatched with their stops in order, and proof of delivery"
 description: README.md
