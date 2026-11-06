@@ -2,7 +2,14 @@ package: logistics
 version: 0.1.0
 label: Logistics
 description: "Depots, vehicles and drivers, trips dispatched with their stops in order and in their windows, deliveries and collections proved, and the fleet's fuel, services and costs"
-depends: [core, selling]
+depends: [core, products, selling]
+field_prefix: logistics_
+
+overlays:
+  - entity: Item
+    ops:
+      - {op: add_field, field: {name: logistics_weight_kg, type: decimal, label: Weight (kg),
+          description: "One unit's weight: a stop with no weight typed takes its goods' from it"}}
 
 modules:
   - name: logistics
