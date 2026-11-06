@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.1
+
+Found walking it in a browser on 7 November.
+
+- A stop's Return Note offers only return delivery notes, and its Delivery Note only those that
+  are not, and each is refused on save otherwise.
+- A proof saved with a connection says "Proof saved."; "A proof kept on this phone was sent."
+  is said only of proofs that waited.
+- Rebuilt with Ferrum-Frontend 922fcfb: an action's refusals on another record's rows show in its
+  dialog, and an action with a confirmation and parameters asks once.
+
 ## 0.3.0
 
 A driver's page that works without a connection (FERRUM-INDUSTRY-009).
