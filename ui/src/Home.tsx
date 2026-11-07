@@ -4,7 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { api, docPath, formatDate, formatDecimal, formatValue, todayIso, t as tr } from "@ferrum/client";
+import { api, docPath, formatDate, formatDecimal, formatValue, todayIso, t as tr, isolate } from "@ferrum/client";
 import { Badge, ErrorState, PageLoading, statusTone, useShellTitle } from "@ferrum/kit";
 
 export interface Row {
@@ -26,7 +26,7 @@ export function progress(trip: Row): { done: number; of: number } {
 }
 
 export function Home() {
-  useShellTitle("Logistics");
+  useShellTitle(tr("Logistics"));
   const day = todayIso();
   const q = useQuery({ queryKey: ["logistics", "trips", day], queryFn: async () => whole(await rows("Trip", [["date", "eq", day]], { sort: "number asc" })), refetchInterval: 30_000 });
   const due = useQuery({ queryKey: ["logistics", "service-due"], queryFn: () => rows("Vehicle", [["service_due", "eq", true]], { sort: "registration asc" }) });
@@ -47,13 +47,13 @@ export function Home() {
           const p = progress(t);
           return (
             <Link key={t.id} className="card card-pad stack" to={`/e/Trip/${t.id}`}>
-              <strong>{String(t.number ?? "")}</strong>
+              <strong>{isolate(String(t.number ?? ""))}</strong>
               <span className="faint">
-                {formatDecimal(t.total_weight ?? 0)} kg{t.distance_km ? ` · ${formatDecimal(t.distance_km)} km` : ""}
+                {tr("{value} kg", { value: formatDecimal(t.total_weight ?? 0) })}{t.distance_km ? tr(" · {value} km", { value: formatDecimal(t.distance_km) }) : ""}
               </span>
-              <span>{`${p.done} of ${p.of} stops done`}</span>
-              {t.cost != null && <span className="faint">{`Cost ${formatValue({ type: "currency" }, t.cost)}`}</span>}
-              <Badge tone={statusTone(String(t.status))}>{String(t.status)}</Badge>
+              <span>{tr("{done} of {of} stops done", { done: p.done, of: p.of })}</span>
+              {t.cost != null && <span className="faint">{tr("Cost {value}", { value: formatValue({ type: "currency" }, t.cost) })}</span>}
+              <Badge tone={statusTone(String(t.status))}>{isolate(String(t.status))}</Badge>
             </Link>
           );
         })}
@@ -64,8 +64,8 @@ export function Home() {
           <ul className="stack">
             {due.data.map((v) => (
               <li key={v.id}>
-                <Link to={`/e/Vehicle/${v.id}`}>{String(v.registration ?? "")}</Link>
-                <span className="faint">{v.next_service_on ? ` · by ${formatDate(v.next_service_on)}` : ""}{v.odometer_km != null ? ` · ${formatDecimal(v.odometer_km, 0)} km` : ""}</span>
+                <Link to={`/e/Vehicle/${v.id}`}>{isolate(String(v.registration ?? ""))}</Link>
+                <span className="faint">{v.next_service_on ? tr(" · by {value}", { value: formatDate(v.next_service_on) }) : ""}{v.odometer_km != null ? tr(" · {value} km", { value: formatDecimal(v.odometer_km, 0) }) : ""}</span>
               </li>
             ))}
           </ul>

@@ -8,7 +8,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
 import { Link } from "react-router";
-import { errorMessage, formatMoment, newKey, todayIso, t as tr } from "@ferrum/client";
+import { errorMessage, formatMoment, newKey, todayIso, t as tr, isolate } from "@ferrum/client";
 import { Badge, Button, Dialog, EmptyState, ErrorState, Field, PageLoading, statusTone, toast, useShellTitle } from "@ferrum/kit";
 import type { Row } from "./Home";
 import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay, sendProof, unreachable, type Proof } from "./offline";
@@ -26,7 +26,7 @@ export function outcomes(collect: boolean): string[] {
 }
 
 export function Drive() {
-  useShellTitle("Your stops");
+  useShellTitle(tr("Your stops"));
   const day = todayIso();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["logistics", "drive", day], queryFn: () => loadTrips(day), refetchInterval: 60_000 });
@@ -37,7 +37,7 @@ export function Drive() {
     (quiet = false) => {
       void flush()
         .then((n) => {
-          if (n && !quiet) toast(n === 1 ? "A proof kept on this phone was sent." : `${n} proofs kept on this phone were sent.`);
+          if (n && !quiet) toast(n === 1 ? tr("A proof kept on this phone was sent.") : tr("{n} proofs kept on this phone were sent.", { n }));
         })
         .catch(() => {})
         .finally(() => void qc.invalidateQueries({ queryKey: ["logistics"] }));
@@ -62,10 +62,10 @@ export function Drive() {
   const discard = (key: string) => void forgetProof(key).finally(() => void qc.invalidateQueries({ queryKey: ["logistics", "kept"] }));
   return (
     <div className="np-page stack">
-      {q.data.asOf && <p role="status" className="faint">{`No connection: your trips as of ${formatMoment(q.data.asOf, { timeStyle: "short" })}.`}</p>}
+      {q.data.asOf && <p role="status" className="faint">{tr("No connection: your trips as of {value}.", { value: formatMoment(q.data.asOf, { timeStyle: "short" }) })}</p>}
       {waiting > 0 && (
         <p role="status" className="row">
-          <span>{waiting === 1 ? "1 proof is kept on this phone, to send." : `${waiting} proofs are kept on this phone, to send.`}</span>
+          <span>{waiting === 1 ? tr("1 proof is kept on this phone, to send.") : tr("{waiting} proofs are kept on this phone, to send.", { waiting })}</span>
           <Button size="sm" onClick={() => sendKept()}>
             {tr("Send now")}
           </Button>
@@ -75,7 +75,7 @@ export function Drive() {
         .filter((p) => p.refused)
         .map((p) => (
           <p key={p.key} role="alert" className="row">
-            <span>{`Stop ${p.stop}'s proof was not taken: ${p.refused}`}</span>
+            <span>{tr("Stop {stop}'s proof was not taken: {refused}", { stop: p.stop, refused: String(p.refused) })}</span>
             <Button size="sm" variant="ghost" onClick={() => discard(p.key)}>
               {tr("Discard")}
             </Button>
@@ -87,7 +87,7 @@ export function Drive() {
       {!q.data.trips.length && <EmptyState title={tr("No trip out for you today")} icon="truck" />}
       {overlay(q.data.trips, proofs).map((t) => (
         <section key={t.id} className="card card-pad stack" aria-label={String(t.number ?? "")}>
-          <h2>{String(t.number ?? "")}</h2>
+          <h2>{isolate(String(t.number ?? ""))}</h2>
           <ol className="stack">
             {(t.stops as Row[]).map((s) => {
               const collect = s.kind === "Collection";
@@ -98,18 +98,18 @@ export function Drive() {
               return (
                 <li key={String(s.id ?? s.sequence)} className="stack">
                   <span>
-                    <strong>{String(s.sequence)}.</strong> {collect ? "Collect from " : ""}
-                    {String(s.address ?? "")} · {String(s.weight_kg ?? 0)} kg{slot ? ` · ${slot}` : ""}{" "}
-                    <Badge tone={mine ? "amber" : statusTone(status)}>{status}</Badge>
+                    <strong>{isolate(String(s.sequence))}.</strong> {collect ? tr("Collect from ") : ""}
+                    {tr("{value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) })}{slot ? ` · ${slot}` : ""}{isolate(" ")}
+                    <Badge tone={mine ? "amber" : statusTone(status)}>{isolate(status)}</Badge>
                     {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
                   </span>
                   {!mine && (s.status ?? "Pending") === "Pending" && (
                     <span className="row">
                       <Button size="sm" variant="primary" onClick={() => open(collect ? "Collected" : "Delivered")}>
-                        {collect ? "Collected" : "Delivered"}
+                        {collect ? tr("Collected") : tr("Delivered")}
                       </Button>
                       <Button size="sm" onClick={() => open("Not Home")}>
-                        {collect ? "Not collected" : "Not delivered"}
+                        {collect ? tr("Not collected") : tr("Not delivered")}
                       </Button>
                     </span>
                   )}
@@ -175,7 +175,7 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
     <Dialog
       open
       onClose={onClose}
-      title={`Stop ${String(stop.sequence)}: ${String(stop.address ?? "")}`}
+      title={tr("Stop {value}: {value2}", { value: String(stop.sequence), value2: String(stop.address ?? "") })}
       footer={
         <>
           <Button onClick={onClose}>{tr("Cancel")}</Button>
@@ -190,13 +190,13 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
           <select className="select" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
             {outcomes(collect).map((o) => (
               <option key={o} value={o}>
-                {o}
+                {isolate(o)}
               </option>
             ))}
           </select>
         </Field>
         {handed && (
-          <Field label={collect ? "Handed over by" : "Received by"} required>
+          <Field label={collect ? tr("Handed over by") : tr("Received by")} required>
             <input className="input" value={receivedBy} autoComplete="off" onChange={(e) => setReceivedBy(e.target.value)} />
           </Field>
         )}
@@ -215,7 +215,7 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
         </Field>
         {error && (
           <p className="field-error" role="alert">
-            {error}
+            {isolate(error)}
           </p>
         )}
       </div>
