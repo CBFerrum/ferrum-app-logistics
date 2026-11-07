@@ -8,7 +8,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
 import { Link } from "react-router";
-import { errorMessage, formatMoment, newKey, todayIso } from "@ferrum/client";
+import { errorMessage, formatMoment, newKey, todayIso, t as tr } from "@ferrum/client";
 import { Badge, Button, Dialog, EmptyState, ErrorState, Field, PageLoading, statusTone, toast, useShellTitle } from "@ferrum/kit";
 import type { Row } from "./Home";
 import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay, sendProof, unreachable, type Proof } from "./offline";
@@ -67,7 +67,7 @@ export function Drive() {
         <p role="status" className="row">
           <span>{waiting === 1 ? "1 proof is kept on this phone, to send." : `${waiting} proofs are kept on this phone, to send.`}</span>
           <Button size="sm" onClick={() => sendKept()}>
-            Send now
+            {tr("Send now")}
           </Button>
         </p>
       )}
@@ -77,14 +77,14 @@ export function Drive() {
           <p key={p.key} role="alert" className="row">
             <span>{`Stop ${p.stop}'s proof was not taken: ${p.refused}`}</span>
             <Button size="sm" variant="ghost" onClick={() => discard(p.key)}>
-              Discard
+              {tr("Discard")}
             </Button>
           </p>
         ))}
       <span className="row">
-        <Link to="/e/FuelLog/new">Log fuel</Link>
+        <Link to="/e/FuelLog/new">{tr("Log fuel")}</Link>
       </span>
-      {!q.data.trips.length && <EmptyState title="No trip out for you today" icon="truck" />}
+      {!q.data.trips.length && <EmptyState title={tr("No trip out for you today")} icon="truck" />}
       {overlay(q.data.trips, proofs).map((t) => (
         <section key={t.id} className="card card-pad stack" aria-label={String(t.number ?? "")}>
           <h2>{String(t.number ?? "")}</h2>
@@ -101,7 +101,7 @@ export function Drive() {
                     <strong>{String(s.sequence)}.</strong> {collect ? "Collect from " : ""}
                     {String(s.address ?? "")} · {String(s.weight_kg ?? 0)} kg{slot ? ` · ${slot}` : ""}{" "}
                     <Badge tone={mine ? "amber" : statusTone(status)}>{status}</Badge>
-                    {s.late === true && <Badge tone="amber">Late</Badge>}
+                    {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
                   </span>
                   {!mine && (s.status ?? "Pending") === "Pending" && (
                     <span className="row">
@@ -125,7 +125,7 @@ export function Drive() {
           onClose={() => setProving(null)}
           onDone={() => {
             setProving(null);
-            toast("Proof saved.");
+            toast(tr("Proof saved."));
             sendKept(true);
           }}
         />
@@ -178,15 +178,15 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
       title={`Stop ${String(stop.sequence)}: ${String(stop.address ?? "")}`}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{tr("Cancel")}</Button>
           <Button variant="primary" loading={busy} onClick={() => void save()}>
-            Save
+            {tr("Save")}
           </Button>
         </>
       }
     >
       <div className="stack">
-        <Field label="What happened" required>
+        <Field label={tr("What happened")} required>
           <select className="select" value={outcome} onChange={(e) => setOutcome(e.target.value)}>
             {outcomes(collect).map((o) => (
               <option key={o} value={o}>
@@ -201,16 +201,16 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
           </Field>
         )}
         {handed && (
-          <Field label="Photo of the goods or the signature">
+          <Field label={tr("Photo of the goods or the signature")}>
             <input className="input" type="file" accept="image/*" capture="environment" onChange={(e) => setPhoto(e.target.files?.[0] ?? null)} />
           </Field>
         )}
         {handed && (
-          <Field label="Or they sign here">
+          <Field label={tr("Or they sign here")}>
             <SignaturePad onChange={setSignature} />
           </Field>
         )}
-        <Field label="Note">
+        <Field label={tr("Note")}>
           <textarea className="textarea" rows={2} value={note} onChange={(e) => setNote(e.target.value)} />
         </Field>
         {error && (
@@ -270,7 +270,7 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
         width={600}
         height={200}
         role="img"
-        aria-label="Signature: draw it here"
+        aria-label={tr("Signature: draw it here")}
         style={{ width: "100%", height: 140, touchAction: "none", borderRadius: 6, border: "1px solid var(--border, #ccc)" }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
@@ -287,7 +287,7 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
           onChange(null);
         }}
       >
-        Clear the signature
+        {tr("Clear the signature")}
       </Button>
     </div>
   );

@@ -4,7 +4,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { api, docPath, formatDate, formatDecimal, formatValue, todayIso } from "@ferrum/client";
+import { api, docPath, formatDate, formatDecimal, formatValue, todayIso, t as tr } from "@ferrum/client";
 import { Badge, ErrorState, PageLoading, statusTone, useShellTitle } from "@ferrum/kit";
 
 export interface Row {
@@ -35,11 +35,11 @@ export function Home() {
   return (
     <div className="np-page">
       <header className="row" style={{ justifyContent: "space-between" }}>
-        <h2>Today's trips</h2>
+        <h2>{tr("Today's trips")}</h2>
         <span className="row">
-          <Link to="/drive">Your stops</Link>
-          <Link to="/e/Trip/new">New trip</Link>
-          <Link to="/r/logistics_fleet_costs">Fleet costs</Link>
+          <Link to="/drive">{tr("Your stops")}</Link>
+          <Link to="/e/Trip/new">{tr("New trip")}</Link>
+          <Link to="/r/logistics_fleet_costs">{tr("Fleet costs")}</Link>
         </span>
       </header>
       <div className="np-columns">
@@ -59,8 +59,8 @@ export function Home() {
         })}
       </div>
       {!!due.data?.length && (
-        <section className="stack" aria-label="Service due">
-          <h2>Service due</h2>
+        <section className="stack" aria-label={tr("Service due")}>
+          <h2>{tr("Service due")}</h2>
           <ul className="stack">
             {due.data.map((v) => (
               <li key={v.id}>
