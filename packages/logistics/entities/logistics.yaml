@@ -45,7 +45,7 @@
     - {name: full_name, type: data, required: true, in_list: true}
     - {name: email, type: email, unique: true, in_list: true, description: "Their sign-in: the trips they drive are theirs to record"}
     - {name: phone, type: phone}
-    - {name: licence_number, type: data, required: true}
+    - {name: licence_number, type: data, required: true, perm_group: identity}
     - {name: licence_expires_on, type: date, required: true, in_list: true}
     - {name: status, type: select, options: [Active, Inactive], default: Active, in_list: true, in_filter: true}
   list: {columns: [full_name, email, licence_expires_on, status], sort: full_name asc}

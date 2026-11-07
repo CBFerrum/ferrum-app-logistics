@@ -96,6 +96,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.3.9** | The assistant knows its records; personal and health details in field groups. |
 | **0.3.8** | Rebuilt with Ferrum-Frontend 5b22e7b: its own words in Arabic and Hindi. |
 | **0.3.7** | Rebuilt with Ferrum-Frontend 6537d65: once-shown answers kept; English isolated right to left; its own words translatable by a workspace. |
 | **0.3.6** | Rebuilt with Ferrum-Frontend d5d98f2: a workspace's own interface words; pictures in attachment fields; a duplicate value said so. |

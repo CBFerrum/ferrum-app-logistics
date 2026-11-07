@@ -1,6 +1,6 @@
 id: logistics
 name: Logistics
-version: 0.3.8
+version: 0.3.9
 publisher: cbferrum
 summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery that works offline, and the fleet's fuel, services and costs"
 description: README.md
@@ -32,3 +32,17 @@ contributes:
   shell.create:
     - {id: trip, label: Trip, path: logistics/e/Trip/new, entity: Trip}
     - {id: fuel, label: Fuel Log, path: logistics/e/FuelLog/new, entity: FuelLog}
+  # What the assistant should know in Logistics's pages, and what it suggests asking there.
+  shell.assistant:
+    - id: logistics
+      title: "Logistics"
+      instructions: >-
+        A Trip (Planned, Dispatched, Completed, Cancelled) takes a Vehicle and a Driver from a Depot through its stops
+        (TripStop), each a delivery or a collection within its window: Pending, Delivered, Collected or Failed. A
+        ProofOfDelivery is taken at the stop, even offline, so a recent stop may still be on its way. Fuel logs and
+        services make up a vehicle's costs.
+      suggestions:
+        - "Which trips are out today?"
+        - "Which stops failed this week, and why?"
+        - "Which vehicles are off the road?"
+        - "What did each vehicle cost in fuel this month?"

@@ -24,7 +24,7 @@ roles:
     permissions:
       - {entity: Depot, read: true, write: true, create: true}
       - {entity: Vehicle, read: true, write: true, create: true, export: true}
-      - {entity: Driver, read: true, write: true, create: true, export: true}
+      - {entity: Driver, read: true, write: true, create: true, export: true, read_groups: [identity], write_groups: [identity]}
       - {entity: Trip, read: true, write: true, create: true, export: true}
       - {entity: ProofOfDelivery, read: true, create: true, export: true}
       - {entity: FuelLog, read: true, write: true, create: true, export: true}
