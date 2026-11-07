@@ -17,7 +17,7 @@ import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay,
 export function windowLabel(stop: Row): string {
   const [from, to] = [stop.window_from, stop.window_to].map((v) => (typeof v === "string" ? v.trim() : ""));
   if (from && to) return `${from}–${to}`;
-  return from ? `from ${from}` : to ? `by ${to}` : "";
+  return from ? tr("from {from}", { from }) : to ? tr("by {to}", { to }) : "";
 }
 
 /** What a stop may be proved with: delivered or collected, as it is, or why not. */
