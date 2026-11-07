@@ -96,6 +96,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.3.6** | Rebuilt with Ferrum-Frontend d5d98f2: a workspace's own interface words; pictures in attachment fields; a duplicate value said so. |
 | **0.3.5** | Rebuilt with Ferrum-Frontend 63280d3: right to left, pages mirror; the records pages' words in Arabic and Hindi. |
 | **0.3.4** | A stop with no weight typed takes its goods', from the Weight (kg) Logistics adds to items. |
 | **0.3.3** | Rebuilt with Ferrum-Frontend a64416a: a box whose default is 1 shows ticked. |
