@@ -4,7 +4,7 @@
 // sent: oldest first, each safe to send again (its key), stopping at the first the server cannot
 // be reached for. One the server refuses stays, with its reason, until the driver discards it.
 
-import { api, ApiError, cacheName, docPath, errorMessage, offlineEnv, pendingName, uploadFile, type OfflineEnv } from "@ferrum/client";
+import { api, ApiError, cacheName, docPath, errorMessage, offlineEnv, pendingName, uploadFile, type OfflineEnv, t as tr } from "@ferrum/client";
 import type { Row } from "./Home";
 
 /** How long the page waits for the server before it shows what this phone kept. */
@@ -78,8 +78,8 @@ export interface Proof {
  *  hands. */
 export function missing(outcome: string, receivedBy: string, photo: Blob | null, signature: Blob | null = null): string | null {
   if (outcome !== "Delivered" && outcome !== "Collected") return null;
-  if (!receivedBy.trim()) return outcome === "Collected" ? "Name who handed the goods over." : "Name who took the goods.";
-  return photo || signature ? null : "Take a photo of the goods, or have them sign on the screen.";
+  if (!receivedBy.trim()) return outcome === "Collected" ? tr("Name who handed the goods over.") : tr("Name who took the goods.");
+  return photo || signature ? null : tr("Take a photo of the goods, or have them sign on the screen.");
 }
 
 /** The proof's record, its photo and signature stored. */
@@ -118,19 +118,19 @@ function openStore(env: OfflineEnv): Promise<IDBDatabase> | null {
     const req = indexedDB.open(name, 1);
     req.onupgradeneeded = () => req.result.createObjectStore(STORE, { keyPath: "key" });
     req.onsuccess = () => resolve(req.result);
-    req.onerror = () => reject(req.error ?? new Error("This phone keeps nothing offline."));
+    req.onerror = () => reject(req.error ?? new Error(tr("This phone keeps nothing offline.")));
   });
 }
 
 async function inStore<T>(mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest, env = offlineEnv()): Promise<T> {
   const open = openStore(env);
-  if (!open) throw new Error("This phone keeps nothing offline: send proofs with a connection.");
+  if (!open) throw new Error(tr("This phone keeps nothing offline: send proofs with a connection."));
   const db = await open;
   return new Promise<T>((resolve, reject) => {
     const tx = db.transaction(STORE, mode);
     const req = run(tx.objectStore(STORE));
     tx.oncomplete = () => (db.close(), resolve(req.result as T));
-    tx.onerror = tx.onabort = () => (db.close(), reject(tx.error ?? new Error("This phone could not keep it.")));
+    tx.onerror = tx.onabort = () => (db.close(), reject(tx.error ?? new Error(tr("This phone could not keep it."))));
   });
 }
 

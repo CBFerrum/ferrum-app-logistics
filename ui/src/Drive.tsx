@@ -93,13 +93,12 @@ export function Drive() {
               const collect = s.kind === "Collection";
               const slot = windowLabel(s);
               const mine = s.kept as Proof | undefined;
-              const status = mine ? (mine.refused ? "Not taken" : "Kept, to send") : String(s.status ?? "Pending");
+              const status = mine ? (mine.refused ? tr("Not taken") : tr("Kept, to send")) : String(s.status ?? "Pending");
               const open = (outcome: string) => setProving({ trip: t, stop: s, outcome });
               return (
                 <li key={String(s.id ?? s.sequence)} className="stack">
                   <span>
-                    <strong>{isolate(String(s.sequence))}.</strong> {collect ? tr("Collect from ") : ""}
-                    {tr("{value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) })}{slot ? ` · ${slot}` : ""}{isolate(" ")}
+                    <strong>{isolate(String(s.sequence))}.</strong> {(collect ? tr("Collect from {value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }) : tr("{value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }))}{slot ? ` · ${slot}` : ""}{isolate(" ")}
                     <Badge tone={mine ? "amber" : statusTone(status)}>{isolate(status)}</Badge>
                     {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
                   </span>
@@ -166,7 +165,7 @@ function ProofDialog({ trip, stop, outcome: first, onClose, onDone }: { trip: Ro
       await keepProof(p).catch(() => sendProof(p));
       onDone();
     } catch (e) {
-      setError(unreachable(e) ? "No connection, and this phone keeps nothing offline: try again with a connection." : errorMessage(e));
+      setError(unreachable(e) ? tr("No connection, and this phone keeps nothing offline: try again with a connection.") : errorMessage(e));
     } finally {
       setBusy(false);
     }

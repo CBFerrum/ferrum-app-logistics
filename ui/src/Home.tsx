@@ -49,7 +49,7 @@ export function Home() {
             <Link key={t.id} className="card card-pad stack" to={`/e/Trip/${t.id}`}>
               <strong>{isolate(String(t.number ?? ""))}</strong>
               <span className="faint">
-                {tr("{value} kg", { value: formatDecimal(t.total_weight ?? 0) })}{t.distance_km ? tr(" · {value} km", { value: formatDecimal(t.distance_km) }) : ""}
+                {t.distance_km ? tr("{weight} kg · {distance} km", { weight: formatDecimal(t.total_weight ?? 0), distance: formatDecimal(t.distance_km) }) : tr("{value} kg", { value: formatDecimal(t.total_weight ?? 0) })}
               </span>
               <span>{tr("{done} of {of} stops done", { done: p.done, of: p.of })}</span>
               {t.cost != null && <span className="faint">{tr("Cost {value}", { value: formatValue({ type: "currency" }, t.cost) })}</span>}
