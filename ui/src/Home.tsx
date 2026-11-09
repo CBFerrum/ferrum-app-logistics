@@ -51,6 +51,7 @@ export function Home() {
               <span className="faint">
                 {t.distance_km ? tr("{weight} kg · {distance} km", { weight: formatDecimal(t.total_weight ?? 0), distance: formatDecimal(t.distance_km) }) : tr("{value} kg", { value: formatDecimal(t.total_weight ?? 0) })}
               </span>
+              {t.weight_unknown === true && t.measured_weight_kg == null && t.status === "Planned" && <Badge tone="amber">{tr("Weight unknown: weigh it before dispatch")}</Badge>}
               <span>{tr("{done} of {of} stops done", { done: p.done, of: p.of })}</span>
               {t.cost != null && <span className="faint">{tr("Cost {value}", { value: formatValue({ type: "currency" }, t.cost) })}</span>}
               <Badge tone={statusTone(String(t.status))}>{isolate(String(t.status))}</Badge>

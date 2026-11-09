@@ -21,6 +21,11 @@ Logistics and fleets for [Ferrum](https://github.com/CBFerrum/Ferrum):
   them from a submitted delivery note. A note is one stop of one open trip: a draft note, or one on
   another trip, is refused. A stop with no weight typed takes its goods': each line's quantity at
   its item's Weight (kg), the field Logistics adds to ERP's items.
+- **Unknown is not nothing.** Goods whose item has no weight make the stop's and the trip's weight
+  unknown, naming them, rather than counting as nothing. Such a trip is weighed before it goes:
+  *Record the Weighed Load* keeps the weight, where and how, who and when, and dispatch checks the
+  vehicle against it while the trip's stops are the ones weighed. A weighing lighter than the goods
+  of known weight is refused.
 - **Collections.** A stop may collect instead: goods coming back, with ERP's return delivery note
   for them in draft. The note is submitted when the goods are collected, so they are back in stock.
   A return note is one stop of one open trip too.
@@ -96,6 +101,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.4.0** | Goods without a weight are not weightless: such a trip is weighed, and the weighing recorded, before it is dispatched. |
 | **0.3.12** | Its reports' names in Arabic and Hindi. |
 | **0.3.11** | Its names in Arabic and Hindi; the last English sentences translated. |
 | **0.3.10** | Sentences built in code are words too, in Arabic and Hindi. |
