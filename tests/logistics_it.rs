@@ -259,6 +259,63 @@ async fn scenario() {
     let empty = uid(&t.insert(&dispatcher, "Trip", trip(bike, fay_d, json!([]))).await["id"]);
     refused(t.act(&dispatcher, empty, "dispatch").await, "invalid", "add its stops");
 
+    // ───────────── goods without a weight are not weightless (FEO-008) ─────────────
+    let tiles = uid(&t
+        .insert(
+            &a,
+            "Item",
+            json!({"item_code": "TILES", "item_name": "Floor tiles", "item_group": services["id"], "stock_uom": nos["id"], "is_stock_item": false}),
+        )
+        .await["id"]);
+    let tiled = |qty: &str| {
+        json!({"company": company.to_string(), "customer": notes[3].0.to_string(), "set_warehouse": stores["id"],
+               "items": [{"item": tiles.to_string(), "qty": qty, "rate": "100"}, {"item": parcel.to_string(), "qty": "2", "rate": "500"}]})
+    };
+    let heavy = uid(&t.insert(&a, "DeliveryNote", tiled("40")).await["id"]);
+    t.k.submit(&a, "DeliveryNote", heavy, None).await.expect("submitted");
+    let next_day = "2026-11-11";
+    let weigh_trip = |vehicle: Uuid, stops: Value| json!({"date": next_day, "depot": hub.to_string(), "vehicle": vehicle.to_string(), "driver": fay_d.to_string(), "stops": stops});
+    let tiles_stop = json!({"delivery_note": heavy.to_string(), "address": "Dee Deli, 4 Bay Road"});
+    let w = t.insert(&dispatcher, "Trip", weigh_trip(bike, json!([tiles_stop.clone(), {"address": "Typed: 9 Side Street", "weight_kg": "7.5"}]))).await;
+    let w_id = uid(&w["id"]);
+    assert_eq!(
+        (w["weight_unknown"].as_bool(), w["stops"][0]["weight_unknown"].as_bool(), w["stops"][0]["unweighed"].as_str()),
+        (Some(true), Some(true), Some("Floor tiles"))
+    );
+    assert_eq!(dec(&w["total_weight"]), 7.5, "what is known, and it says the rest is not");
+    refused(t.act(&dispatcher, w_id, "dispatch").await, "invalid", "the weight of Floor tiles is not known");
+    let weigh = |kg: &str, note: &str| t.k.run_action(&dispatcher, "Trip", w_id, "record_weight", json!({"weight_kg": kg, "note": note}));
+    refused(weigh("5", "Dock scale 2").await, "invalid", "known weigh 7.5 kg");
+    assert!(t.k.run_action(&dan, "Trip", w_id, "record_weight", json!({"weight_kg": "300", "note": "a guess"})).await.is_err(), "a driver does not record it");
+    weigh("320", "Weighbridge at North Hub, ticket 4471").await.expect("weighed");
+    let w = t.get("Trip", w_id).await;
+    assert_eq!(
+        (dec(&w["measured_weight_kg"]), w["measured_by"].as_str(), w["measured_note"].as_str()),
+        (320.0, Some("desk@fleet.test"), Some("Weighbridge at North Hub, ticket 4471"))
+    );
+    assert!(w["measured_at"].is_string(), "when, by whom and how, on the trip");
+    // Weighed, the vehicle is checked against what it weighed.
+    refused(t.act(&dispatcher, w_id, "dispatch").await, "invalid", "BIKE-1 carries 100 kg, and the load is 320");
+    // A weighing is of the stops it weighed: changed, it is weighed again.
+    t.k.update(&dispatcher, "Trip", w_id, obj(json!({"vehicle": van1.to_string(), "stops": [tiles_stop.clone()]})), None).await.expect("a van, one stop");
+    refused(t.act(&dispatcher, w_id, "dispatch").await, "invalid", "is not known");
+    weigh("312.5", "Weighbridge at North Hub, ticket 4472").await.expect("weighed again");
+    t.act(&dispatcher, w_id, "dispatch").await.expect("dispatched, as weighed");
+    // Given its weight, the item is known from then on: no weighing needed.
+    t.k.update(&a, "Item", tiles, obj(json!({"logistics_weight_kg": "7.5"})), None).await.expect("a box of tiles' weight");
+    let light = uid(&t.insert(&a, "DeliveryNote", tiled("4")).await["id"]);
+    t.k.submit(&a, "DeliveryNote", light, None).await.expect("submitted");
+    let known = t
+        .insert(
+            &dispatcher,
+            "Trip",
+            json!({"date": next_day, "depot": hub.to_string(), "vehicle": bike.to_string(), "driver": dan_d.to_string(),
+                   "stops": [{"delivery_note": light.to_string(), "address": "Dee Deli, 4 Bay Road"}]}),
+        )
+        .await;
+    assert_eq!((known["weight_unknown"].as_bool(), dec(&known["total_weight"])), (Some(false), 35.0), "four boxes at 7.5 and two hampers at 2.5");
+    t.act(&dispatcher, uid(&known["id"]), "dispatch").await.expect("dispatched, its weight known");
+
     // ───────────── the driver's stops, and proof of delivery ─────────────
     let mine = call(&k, &dan, "drive", json!({"day": day})).await.unwrap();
     assert_eq!(mine["trips"].as_array().unwrap().len(), 1);
