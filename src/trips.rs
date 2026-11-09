@@ -59,7 +59,7 @@ impl DocHook for TripHook {
     }
 
     fn fills(&self) -> &'static [&'static str] {
-        &["stops", "total_weight", "distance_km"]
+        &["stops", "total_weight", "weight_unknown", "distance_km"]
     }
 
     async fn before_validate(&self, hc: &mut HookCtx<'_>, doc: &mut Doc) -> Result<()> {
@@ -68,11 +68,17 @@ impl DocHook for TripHook {
             r.insert("sequence".into(), json!(i + 1));
         }
         // A stop with no weight typed takes its goods': each line's quantity at its item's Weight
-        // (kg), Logistics' field on Item. One typed stays as typed.
+        // (kg), Logistics' field on Item. One typed stays as typed. Goods whose item has no weight
+        // are not taken as weighing nothing: the stop's weight is unknown, and says which (FEO-008).
+        for r in stops.iter_mut() {
+            r.insert("weight_unknown".into(), json!(false));
+            r.insert("unweighed".into(), Value::Null);
+        }
         for r in stops.iter_mut().filter(|r| d(r, "weight_kg") <= Decimal::ZERO) {
             let Some(note) = id(r, "delivery_note").or_else(|| id(r, "return_note")) else { continue };
-            let goods: Option<Decimal> = sqlx::query_scalar(
-                "select sum(abs(coalesce(i.stock_qty, i.qty)) * coalesce((it.ext->>'logistics_weight_kg')::numeric, 0)) \
+            let (goods, missing): (Option<Decimal>, Option<String>) = sqlx::query_as(
+                "select sum(abs(coalesce(i.stock_qty, i.qty)) * coalesce((it.ext->>'logistics_weight_kg')::numeric, 0)), \
+                        string_agg(distinct it.item_name, ', ') filter (where coalesce((it.ext->>'logistics_weight_kg')::numeric, 0) <= 0) \
                  from e_delivery_note__items i join e_item it on it.tenant_id = i.tenant_id and it.id = i.item \
                  where i.tenant_id = $1 and i.parent_id = $2",
             )
@@ -80,10 +86,19 @@ impl DocHook for TripHook {
             .bind(note)
             .fetch_one(&mut **hc.tx)
             .await?;
-            if let Some(kg) = goods.filter(|kg| *kg > Decimal::ZERO) {
-                r.insert("weight_kg".into(), money(kg));
+            match missing {
+                Some(names) => {
+                    r.insert("weight_unknown".into(), json!(true));
+                    r.insert("unweighed".into(), json!(names.chars().take(500).collect::<String>()));
+                }
+                None => {
+                    if let Some(kg) = goods.filter(|kg| *kg > Decimal::ZERO) {
+                        r.insert("weight_kg".into(), money(kg));
+                    }
+                }
             }
         }
+        let unknown = stops.iter().any(|r| r.get("weight_unknown") == Some(&json!(true)));
         let load: Decimal = stops.iter().map(|r| d(r, "weight_kg")).sum();
         let depot = match id(doc, "depot") {
             Some(dp) => sqlx::query_as::<_, (Option<Decimal>, Option<Decimal>)>("select latitude, longitude from e_depot where tenant_id = $1 and id = $2")
@@ -101,6 +116,7 @@ impl DocHook for TripHook {
         };
         doc.insert("stops".into(), Value::Array(stops.into_iter().map(Value::Object).collect()));
         doc.insert("total_weight".into(), money(load));
+        doc.insert("weight_unknown".into(), json!(unknown));
         doc.insert("distance_km".into(), distance);
         Ok(())
     }
@@ -214,7 +230,7 @@ impl DocHook for TripHook {
         }
     }
 
-    async fn action(&self, hc: &mut HookCtx<'_>, name: &str, doc: &Doc, _params: &Value) -> Result<Option<Value>> {
+    async fn action(&self, hc: &mut HookCtx<'_>, name: &str, doc: &Doc, params: &Value) -> Result<Option<Value>> {
         let trip = id(doc, "id").ok_or_else(|| Error::internal("a trip without an id"))?;
         let system = elevated(hc.ctx);
         let now = Utc::now().to_rfc3339();
@@ -234,6 +250,32 @@ impl DocHook for TripHook {
                 let reordered: Vec<Value> = order.into_iter().map(|i| Value::Object(stops[i].clone())).collect();
                 let saved = hc.kernel.update_tx(&system, hc.tx, "Trip", trip, obj(json!({"stops": reordered})), None).await?;
                 Ok(Some(json!({"distance_km": saved.get("distance_km"), "stops": rows(&saved, "stops").iter().map(|r| s(r, "address")).collect::<Vec<_>>()})))
+            }
+            "record_weight" => {
+                let kg = params["weight_kg"].as_str().map(str::to_string).or_else(|| params["weight_kg"].as_f64().map(|f| f.to_string()));
+                let kg: Decimal = kg
+                    .and_then(|k| k.trim().parse().ok())
+                    .filter(|k: &Decimal| *k > Decimal::ZERO)
+                    .ok_or_else(|| Error::field("weight_kg", "the load as weighed, in kg, more than nothing"))?;
+                let note =
+                    params["note"].as_str().map(str::trim).filter(|n| !n.is_empty()).ok_or_else(|| Error::field("note", "say where and how it was weighed"))?;
+                // Reconciled with what is known: a weighing lighter than the goods of known weight is wrong.
+                let known = d(doc, "total_weight");
+                if kg < known {
+                    return Err(Error::field("weight_kg", format!("the goods whose weight is known weigh {known} kg: a weighed load is not less")));
+                }
+                let by = if hc.ctx.email.is_empty() { hc.ctx.user.to_string() } else { hc.ctx.email.clone() };
+                let at = now.clone();
+                hc.kernel
+                    .set_values_tx(
+                        &system,
+                        hc.tx,
+                        "Trip",
+                        trip,
+                        obj(json!({"measured_weight_kg": money(kg), "measured_by": by, "measured_at": at, "measured_note": note.chars().take(300).collect::<String>(), "measured_for": weighed_for(doc)})),
+                    )
+                    .await?;
+                Ok(Some(json!({"measured_weight_kg": money(kg)})))
             }
             "dispatch" => {
                 dispatchable(hc, doc).await?;
@@ -279,6 +321,11 @@ impl DocHook for TripHook {
     }
 }
 
+/// What a weighing was of: the trip's stops as they were weighed. Stops changed since make it stale.
+fn weighed_for(doc: &Doc) -> String {
+    ferrum_kernel::receipt::digest("logistics.trip.weighed", None, &json!(route(doc)))
+}
+
 /// Refused unless the trip has stops, its vehicle is on the road and carries the load, its driver
 /// is active and licensed on the day, and neither is out on another trip that day.
 async fn dispatchable(hc: &mut HookCtx<'_>, doc: &Doc) -> Result<()> {
@@ -298,9 +345,30 @@ async fn dispatchable(hc: &mut HookCtx<'_>, doc: &Doc) -> Result<()> {
     if v.1.as_deref() == Some("Off Road") {
         return Err(Error::field("vehicle", format!("{} is off the road", v.0)));
     }
-    let load = d(doc, "total_weight");
-    if load > v.2.unwrap_or_default() {
-        return Err(Error::field("vehicle", format!("{} carries {} kg, and the load is {load} kg", v.0, v.2.unwrap_or_default())));
+    // The load is what its goods weigh; where some have no weight, what it weighed, recorded for
+    // these very stops (FEO-008). Unknown is not nothing.
+    let weighed = doc
+        .get("measured_weight_kg")
+        .filter(|w| !w.is_null())
+        .map(|_| d(doc, "measured_weight_kg"))
+        .filter(|_| s(doc, "measured_for") == Some(weighed_for(doc).as_str()));
+    let load = match (weighed, doc.get("weight_unknown") == Some(&json!(true))) {
+        (Some(w), _) => w,
+        (None, true) => {
+            let missing: Vec<String> = rows(doc, "stops").iter().filter_map(|r| s(r, "unweighed").map(str::to_string)).collect();
+            return Err(Error::field(
+                "stops",
+                format!(
+                    "the weight of {} is not known: weigh the load and record it (Record the Weighed Load), or give those items their weight",
+                    missing.join(", ")
+                ),
+            ));
+        }
+        (None, false) => d(doc, "total_weight"),
+    };
+    let capacity = v.2.unwrap_or_default();
+    if load > capacity {
+        return Err(Error::field("vehicle", format!("{} carries {} kg, and the load is {} kg", v.0, capacity.normalize(), load.normalize())));
     }
     let dr: (String, Option<String>, Option<chrono::NaiveDate>) =
         sqlx::query_as("select full_name, status, licence_expires_on from e_driver where tenant_id = $1 and id = $2")
