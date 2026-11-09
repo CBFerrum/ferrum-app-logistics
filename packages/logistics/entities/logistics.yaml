@@ -65,6 +65,8 @@
     - {name: latitude, type: decimal}
     - {name: longitude, type: decimal}
     - {name: weight_kg, type: decimal, default: 0, label: Weight (kg), in_list: true}
+    - {name: weight_unknown, type: check, read_only: true, no_copy: true, label: Weight Unknown, description: "Some of its goods have no weight on their item: it is not taken as nothing"}
+    - {name: unweighed, type: data, read_only: true, no_copy: true, max_length: 500, label: Goods Without a Weight}
     - {name: status, type: select, options: [Pending, Delivered, Collected, Failed], default: Pending, read_only: true, in_list: true}
     - {name: delivered_at, type: datetime, read_only: true}
     - {name: late, type: check, read_only: true, description: "Its proof was recorded after its window closed"}
@@ -82,7 +84,13 @@
     - {name: vehicle, type: link, to: Vehicle, required: true, in_list: true, in_filter: true}
     - {name: driver, type: link, to: Driver, required: true, in_list: true, in_filter: true}
     - {name: stops, type: table, of: TripStop}
-    - {name: total_weight, type: decimal, read_only: true, label: Load (kg), in_list: true}
+    - {name: total_weight, type: decimal, read_only: true, label: Load (kg), in_list: true, description: "What its stops weigh, as far as it is known"}
+    - {name: weight_unknown, type: check, read_only: true, no_copy: true, label: Weight Unknown, in_list: true, description: "Some goods on it have no weight: it is weighed, and the weighing recorded, before it is dispatched"}
+    - {name: measured_weight_kg, type: decimal, read_only: true, no_copy: true, label: Weighed Load (kg), description: "The load as weighed, which dispatch checks against the vehicle while it is of these stops"}
+    - {name: measured_by, type: data, read_only: true, no_copy: true, label: Weighed By}
+    - {name: measured_at, type: datetime, read_only: true, no_copy: true, label: Weighed At}
+    - {name: measured_note, type: data, read_only: true, no_copy: true, max_length: 300, label: How It Was Weighed}
+    - {name: measured_for, type: data, read_only: true, no_copy: true, hidden: true, description: "The stops the weighing was of"}
     - {name: distance_km, type: decimal, read_only: true, label: "Distance (km, straight line)", description: "From the depot through the stops in order and back, as the crow flies"}
     - {name: status, type: select, options: [Planned, Dispatched, Completed, Cancelled], default: Planned, read_only: true, no_copy: true, in_list: true, in_filter: true}
     - {name: dispatched_at, type: datetime, read_only: true, no_copy: true}
@@ -90,6 +98,8 @@
     - {name: cost, type: currency, read_only: true, no_copy: true, in_list: true, description: "Its distance at the vehicle's cost per km, once it is completed"}
   actions:
     - {name: plan_route, label: Order the Stops, permission: write, condition: "doc.status == 'Planned'"}
+    - {name: record_weight, label: Record the Weighed Load, permission: write, condition: "doc.status == 'Planned'",
+       params: [{name: weight_kg, type: decimal, label: Weighed Load (kg), required: true}, {name: note, type: data, label: "Where and how it was weighed", required: true}]}
     - {name: dispatch, label: Dispatch It, permission: write, condition: "doc.status == 'Planned'"}
     - {name: complete, label: Complete It, permission: write, condition: "doc.status == 'Dispatched'"}
     - {name: cancel_trip, label: Cancel It, permission: write, condition: "doc.status == 'Planned' || doc.status == 'Dispatched'"}

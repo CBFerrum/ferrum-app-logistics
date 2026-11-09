@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+Goods without a weight are not taken as weighing nothing (Ferrum's closure review, FEO-008).
+
+- A stop whose goods include items with no Weight (kg) is marked Weight Unknown, naming them, and its trip too; before, those items counted as nothing towards the load a vehicle is checked against.
+- Such a trip is not dispatched until its load is weighed and recorded (Record the Weighed Load: the weight, where and how it was weighed; who and when are kept on the trip). Dispatch then checks the vehicle against what it weighed. A weighing is of the stops it weighed: changed, the trip is weighed again. One lighter than the goods whose weight is known is refused. Drivers do not record it.
+- Today's trips show a planned trip whose weight is unknown and not yet weighed.
+- The vehicle's capacity and the load read as numbers in the refusal ("carries 100 kg").
+
+Built with Ferrum-Frontend 7a008a6.
+
 ## 0.3.12
 
 The reports it defines in code (their titles and parameters) have names in Arabic and Hindi too, with its models' and manifest's (121 each in ui/src/locales/names). Translated by the model, to be reviewed by native speakers.
