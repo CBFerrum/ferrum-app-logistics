@@ -5,15 +5,14 @@
   "Clear the signature": "हस्ताक्षर साफ़ करें",
   "Collect from {value} · {value2} kg": "{value} से उठाएँ · {value2} किग्रा",
   "Collected": "वसूला गया",
-  "Cost {value}": "लागत {value}",
+  "Cost": "लागत",
   "Delivered": "डिलीवर किया गया",
   "Fleet costs": "बेड़े की लागत",
   "Go to the trips": "यात्राओं पर जाएँ",
   "Handed over by": "इन्होंने सौंपा",
   "Kept on this device, to send": "इस डिवाइस पर रखा है, भेजना बाकी",
   "Late": "देर से",
-  "Load: {value} kg": "भार: {value} किग्रा",
-  "Load: {weight} kg · {distance} km": "भार: {weight} किग्रा · {distance} किमी",
+  "Load": "भार",
   "Log fuel": "ईंधन दर्ज करें",
   "Name who handed the goods over.": "बताएँ किसने माल सौंपा।",
   "Name who took the goods.": "बताएँ किसने माल लिया।",
@@ -48,7 +47,9 @@
   "by {to}": "{to} तक",
   "{done} of {of} stops done": "{of} में से {done} पड़ाव पूरे",
   "{n} proofs kept on this phone were sent.": "इस फ़ोन पर रखे {n} प्रमाण भेजे गए।",
+  "{value} kg": "{value} किग्रा",
   "{value} km": "{value} किमी",
   "{value} · {value2} kg": "{value} · {value2} किग्रा",
-  "{waiting} proofs are kept on this phone, to send.": "{waiting} प्रमाण इस फ़ोन पर भेजने के लिए रखे हैं।"
+  "{waiting} proofs are kept on this phone, to send.": "{waiting} प्रमाण इस फ़ोन पर भेजने के लिए रखे हैं।",
+  "{weight} kg · {distance} km": "{weight} किग्रा · {distance} किमी"
 }

@@ -4,10 +4,10 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { api, docPath, formatDate, formatDecimal, formatValue, todayIso, t as tr, isolate } from "@ferrum/client";
-import { Badge, ButtonLink, HomeSkeleton, LoadFailed, PageHead, Queue, QueueGrid, QueueItem, StatePanel, StatusBadge, Tile, TileGrid } from "@ferrum/kit";
+import { Badge, ButtonLink, HomeSkeleton, LoadFailed, PageHead, PageStack, Queue, QueueGrid, QueueItem, StatePanel, StatusBadge, Tile, TileGrid, type Tone } from "@ferrum/kit";
 
 // Trip.status as stored (packages/logistics/entities).
-export const TRIP_TONES = { Planned: "neutral", Dispatched: "blue", Completed: "green", Cancelled: "neutral" } as const;
+export const TRIP_TONES: Readonly<Record<string, Tone>> = { Planned: "neutral", Dispatched: "blue", Completed: "green", Cancelled: "neutral" };
 
 export interface Row {
   id: string;
@@ -43,10 +43,10 @@ export function Home() {
       }
     />
   );
-  if (q.isPending) return <>{head}<HomeSkeleton queues={1} /></>;
-  if (q.isError) return <>{head}<LoadFailed error={q.error} onRetry={() => void q.refetch()} /></>;
+  if (q.isPending) return <PageStack>{head}<HomeSkeleton queues={1} /></PageStack>;
+  if (q.isError) return <PageStack>{head}<LoadFailed error={q.error} onRetry={() => void q.refetch()} /></PageStack>;
   return (
-    <>
+    <PageStack gap="lg">
       {head}
       {q.data.length === 0 ? (
         <StatePanel kind="empty" title={tr("No trips today")}>{tr("Plan a trip for today and it shows here with its load and its stops.")}</StatePanel>
@@ -54,33 +54,22 @@ export function Home() {
         <TileGrid label={tr("Today's trips")}>
           {q.data.map((t) => {
             const p = progress(t);
-            const load = t.distance_km ? tr("Load: {weight} kg · {distance} km", { weight: formatDecimal(t.total_weight ?? 0), distance: formatDecimal(t.distance_km) }) : tr("Load: {value} kg", { value: formatDecimal(t.total_weight ?? 0) });
+            const load = t.distance_km ? tr("{weight} kg · {distance} km", { weight: formatDecimal(t.total_weight ?? 0), distance: formatDecimal(t.distance_km) }) : tr("{value} kg", { value: formatDecimal(t.total_weight ?? 0) });
+            const figures = [{ label: tr("Load"), value: isolate(load) }];
+            if (t.cost != null) figures.push({ label: tr("Cost"), value: isolate(formatValue({ type: "currency" }, t.cost)) });
             return (
               <Tile
                 key={t.id}
                 to={`/e/Trip/${t.id}`}
                 title={isolate(String(t.number ?? ""))}
-                meta={
-                  <>
-                    <span>{isolate(load)}</span>
-                    {p.of === 0 ? (
-                      <span>{tr("No stops yet")}</span>
-                    ) : (
-                      <>
-                        <span>{tr("{done} of {of} stops done", { done: p.done, of: p.of })}</span>
-                        <span className="trip-meter" role="progressbar" aria-label={tr("Stops done")} aria-valuemin={0} aria-valuemax={p.of} aria-valuenow={p.done}>
-                          <span style={{ inlineSize: `${(p.done / p.of) * 100}%` }} />
-                        </span>
-                      </>
-                    )}
-                    {t.cost != null && <span>{tr("Cost {value}", { value: formatValue({ type: "currency" }, t.cost) })}</span>}
-                  </>
-                }
+                meta={<span>{p.of === 0 ? tr("No stops yet") : isolate(tr("{done} of {of} stops done", { done: p.done, of: p.of }))}</span>}
+                figures={figures}
+                progress={p.of > 0 ? { value: p.done, max: p.of, label: tr("Stops done") } : undefined}
                 status={
-                  <span className="trip-flags">
+                  <>
                     <StatusBadge value={t.status} tones={TRIP_TONES} label={isolate(String(t.status))} />
                     {t.weight_unknown === true && t.measured_weight_kg == null && t.status === "Planned" && <Badge tone="amber">{tr("Weight unknown: weigh it before dispatch")}</Badge>}
-                  </span>
+                  </>
                 }
               />
             );
@@ -88,7 +77,7 @@ export function Home() {
         </TileGrid>
       )}
       {!!due.data?.length && (
-        <QueueGrid className="service-due">
+        <QueueGrid>
           <Queue title={tr("Service due")} count={due.data.length} tone="attention" more={{ to: "/e/Vehicle", count: due.data.length - 5 }}>
             {due.data.slice(0, 5).map((v) => (
               <QueueItem
@@ -101,6 +90,6 @@ export function Home() {
           </Queue>
         </QueueGrid>
       )}
-    </>
+    </PageStack>
   );
 }

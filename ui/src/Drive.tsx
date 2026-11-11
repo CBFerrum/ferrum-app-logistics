@@ -8,12 +8,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
 import { errorMessage, formatMoment, newKey, todayIso, t as tr, isolate } from "@ferrum/client";
-import { Alert, Badge, Button, ButtonLink, Dialog, Field, HomeSkeleton, LoadFailed, PageHead, StatePanel, StatusBadge, toast } from "@ferrum/kit";
+import { Alert, Badge, Button, ButtonLink, Dialog, Field, HomeSection, HomeSkeleton, LoadFailed, PageHead, PageStack, StatePanel, StatusBadge, toast, type Tone } from "@ferrum/kit";
 import type { Row } from "./Home";
 import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay, sendProof, unreachable, type Proof } from "./offline";
 
 // TripStop.status as stored (packages/logistics/entities).
-const STOP_TONES = { Pending: "neutral", Delivered: "green", Collected: "green", Failed: "red" } as const;
+const STOP_TONES: Readonly<Record<string, Tone>> = { Pending: "neutral", Delivered: "green", Collected: "green", Failed: "red" };
 
 /** A stop's window, as "09:00–11:00", "from 09:00" or "by 11:00"; empty without one. */
 export function windowLabel(stop: Row): string {
@@ -57,15 +57,15 @@ export function Drive() {
   }, [sendKept]);
 
   const head = <PageHead title={tr("Your stops")} actions={<ButtonLink to="/e/FuelLog/new">{tr("Log fuel")}</ButtonLink>} />;
-  if (q.isPending) return <>{head}<HomeSkeleton queues={1} /></>;
-  if (q.isError) return <>{head}<LoadFailed error={q.error} onRetry={() => void q.refetch()} /></>;
+  if (q.isPending) return <PageStack>{head}<HomeSkeleton queues={1} /></PageStack>;
+  if (q.isError) return <PageStack>{head}<LoadFailed error={q.error} onRetry={() => void q.refetch()} /></PageStack>;
   const proofs = kept.data ?? [];
   const waiting = proofs.filter((p) => !p.refused).length;
   const discard = (key: string) => void forgetProof(key).finally(() => void qc.invalidateQueries({ queryKey: ["logistics", "kept"] }));
   return (
     <>
-      {head}
-      <div className="grid gap-3">
+      <PageStack>
+        {head}
         {q.data.asOf && <Alert tone="warning">{tr("No connection: your trips as of {value}.", { value: formatMoment(q.data.asOf, { timeStyle: "short" }) })}</Alert>}
         {waiting > 0 && (
           <Alert
@@ -96,8 +96,7 @@ export function Drive() {
           ))}
         {!q.data.trips.length && <StatePanel kind="empty" title={tr("No trip out for you today")} />}
         {overlay(q.data.trips, proofs).map((t) => (
-          <section key={t.id} className="card card-pad stack min-w-0" aria-label={String(t.number ?? "")}>
-            <h2 className="text-base font-semibold">{isolate(String(t.number ?? ""))}</h2>
+          <HomeSection key={t.id} title={isolate(String(t.number ?? ""))}>
             <ol className="drive-stops">
               {(t.stops as Row[]).map((s) => {
                 const collect = s.kind === "Collection";
@@ -131,9 +130,9 @@ export function Drive() {
                 );
               })}
             </ol>
-          </section>
+          </HomeSection>
         ))}
-      </div>
+      </PageStack>
       {proving && (
         <ProofDialog
           {...proving}

@@ -4,44 +4,6 @@
 @source "../../../ferrum/web/src";
 @source ".";
 
-/* Today's trips: how far along the stops are (read only: the number beside it says it too). */
-.trip-meter {
-  display: block;
-  block-size: 6px;
-  margin-block: 4px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: var(--surface-2);
-}
-
-.trip-meter > span {
-  display: block;
-  block-size: 100%;
-  background: var(--success);
-}
-
-/* A tile is narrow: a long flag wraps inside its badge instead of being cut off. */
-.trip-flags {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  align-items: center;
-}
-
-.trip-flags .badge {
-  white-space: normal;
-}
-
-.tile-meta:has(.trip-meter) {
-  inline-size: 100%;
-}
-
-/* One queue is as wide as a queue, not the page. */
-.service-due {
-  margin-block-start: 24px;
-  grid-template-columns: minmax(0, 28rem);
-}
-
 /* The driver's stops, on a phone: the address and its window, the stop's state, then big buttons. */
 .drive-stops {
   margin: 0;
