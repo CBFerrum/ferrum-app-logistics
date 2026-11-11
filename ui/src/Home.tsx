@@ -64,7 +64,7 @@ export function Home() {
                 title={isolate(String(t.number ?? ""))}
                 meta={<span>{p.of === 0 ? tr("No stops yet") : isolate(tr("{done} of {of} stops done", { done: p.done, of: p.of }))}</span>}
                 figures={figures}
-                progress={p.of > 0 ? { value: p.done, max: p.of, label: tr("Stops done") } : undefined}
+                progress={p.of > 0 ? { value: p.done, max: p.of, label: tr("Stops done"), tone: t.status === "Completed" ? "good" : "default" } : undefined}
                 status={
                   <>
                     <StatusBadge value={t.status} tones={TRIP_TONES} label={isolate(String(t.status))} />
