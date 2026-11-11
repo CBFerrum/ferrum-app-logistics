@@ -7,9 +7,8 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
-import { Link } from "react-router";
 import { errorMessage, formatMoment, newKey, todayIso, t as tr, isolate } from "@ferrum/client";
-import { Badge, Button, Dialog, EmptyState, ErrorState, Field, ListSkeleton, statusTone, toast, useShellTitle } from "@ferrum/kit";
+import { Alert, Badge, Button, ButtonLink, Dialog, Field, HomeSkeleton, LoadFailed, PageHead, StatePanel, StatusBadge, toast } from "@ferrum/kit";
 import type { Row } from "./Home";
 import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay, sendProof, unreachable, type Proof } from "./offline";
 
@@ -29,7 +28,6 @@ export function outcomes(collect: boolean): string[] {
 }
 
 export function Drive() {
-  useShellTitle(tr("Your stops"));
   const day = todayIso();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ["logistics", "drive", day], queryFn: () => loadTrips(day), refetchInterval: 60_000 });
@@ -58,69 +56,84 @@ export function Drive() {
     };
   }, [sendKept]);
 
-  if (q.isPending) return <ListSkeleton className="np-page" />;
-  if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
+  const head = <PageHead title={tr("Your stops")} actions={<ButtonLink to="/e/FuelLog/new">{tr("Log fuel")}</ButtonLink>} />;
+  if (q.isPending) return <>{head}<HomeSkeleton queues={1} /></>;
+  if (q.isError) return <>{head}<LoadFailed error={q.error} onRetry={() => void q.refetch()} /></>;
   const proofs = kept.data ?? [];
   const waiting = proofs.filter((p) => !p.refused).length;
   const discard = (key: string) => void forgetProof(key).finally(() => void qc.invalidateQueries({ queryKey: ["logistics", "kept"] }));
   return (
-    <div className="np-page stack">
-      {q.data.asOf && <p role="status" className="faint">{tr("No connection: your trips as of {value}.", { value: formatMoment(q.data.asOf, { timeStyle: "short" }) })}</p>}
-      {waiting > 0 && (
-        <p role="status" className="row">
-          <span>{waiting === 1 ? tr("1 proof is kept on this phone, to send.") : tr("{waiting} proofs are kept on this phone, to send.", { waiting })}</span>
-          <Button size="sm" onClick={() => sendKept()}>
-            {tr("Send now")}
-          </Button>
-        </p>
-      )}
-      {proofs
-        .filter((p) => p.refused)
-        .map((p) => (
-          <p key={p.key} role="alert" className="row">
-            <span>{tr("Stop {stop}'s proof was not taken: {refused}", { stop: p.stop, refused: String(p.refused) })}</span>
-            <Button size="sm" variant="ghost" onClick={() => discard(p.key)}>
-              {tr("Discard")}
-            </Button>
-          </p>
+    <>
+      {head}
+      <div className="grid gap-3">
+        {q.data.asOf && <Alert tone="warning">{tr("No connection: your trips as of {value}.", { value: formatMoment(q.data.asOf, { timeStyle: "short" }) })}</Alert>}
+        {waiting > 0 && (
+          <Alert
+            tone="info"
+            action={
+              <Button size="sm" onClick={() => sendKept()}>
+                {tr("Send now")}
+              </Button>
+            }
+          >
+            {waiting === 1 ? tr("1 proof is kept on this phone, to send.") : tr("{waiting} proofs are kept on this phone, to send.", { waiting })}
+          </Alert>
+        )}
+        {proofs
+          .filter((p) => p.refused)
+          .map((p) => (
+            <Alert
+              key={p.key}
+              tone="error"
+              action={
+                <Button size="sm" variant="ghost" onClick={() => discard(p.key)}>
+                  {tr("Discard")}
+                </Button>
+              }
+            >
+              {tr("Stop {stop}'s proof was not taken: {refused}", { stop: p.stop, refused: String(p.refused) })}
+            </Alert>
+          ))}
+        {!q.data.trips.length && <StatePanel kind="empty" title={tr("No trip out for you today")} />}
+        {overlay(q.data.trips, proofs).map((t) => (
+          <section key={t.id} className="card card-pad stack min-w-0" aria-label={String(t.number ?? "")}>
+            <h2 className="text-base font-semibold">{isolate(String(t.number ?? ""))}</h2>
+            <ol className="drive-stops">
+              {(t.stops as Row[]).map((s) => {
+                const collect = s.kind === "Collection";
+                const slot = windowLabel(s);
+                const mine = s.kept as Proof | undefined;
+                // A proof still on this phone is never shown as done: only the server's own status is.
+                const status = mine ? (mine.refused ? tr("Not taken") : tr("Kept on this device, to send")) : String(s.status ?? "Pending");
+                const open = (outcome: string) => setProving({ trip: t, stop: s, outcome });
+                return (
+                  <li key={String(s.id ?? s.sequence)} className="drive-stop">
+                    <div className="drive-stop-head">
+                      <span className="drive-stop-no">{isolate(String(s.sequence))}</span>
+                      <span className="drive-stop-text">
+                        <span className="text-base font-medium">{collect ? tr("Collect from {value} · {value2} kg", { value: isolate(String(s.address ?? "")), value2: String(s.weight_kg ?? 0) }) : tr("{value} · {value2} kg", { value: isolate(String(s.address ?? "")), value2: String(s.weight_kg ?? 0) })}</span>
+                        {slot && <span className="text-xs text-muted-foreground">{isolate(slot)}</span>}
+                      </span>
+                    </div>
+                    <div className="drive-stop-state">
+                      {mine ? <Badge tone="amber">{isolate(status)}</Badge> : <StatusBadge value={status} tones={STOP_TONES} label={isolate(status)} />}
+                      {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
+                    </div>
+                    {!mine && (s.status ?? "Pending") === "Pending" && (
+                      <div className="drive-stop-actions">
+                        <Button variant="primary" onClick={() => open(collect ? "Collected" : "Delivered")}>
+                          {collect ? tr("Collected") : tr("Delivered")}
+                        </Button>
+                        <Button onClick={() => open("Not Home")}>{collect ? tr("Not collected") : tr("Not delivered")}</Button>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
         ))}
-      <span className="row">
-        <Link to="/e/FuelLog/new">{tr("Log fuel")}</Link>
-      </span>
-      {!q.data.trips.length && <EmptyState title={tr("No trip out for you today")} icon="truck" />}
-      {overlay(q.data.trips, proofs).map((t) => (
-        <section key={t.id} className="card card-pad stack" aria-label={String(t.number ?? "")}>
-          <h2>{isolate(String(t.number ?? ""))}</h2>
-          <ol className="stack">
-            {(t.stops as Row[]).map((s) => {
-              const collect = s.kind === "Collection";
-              const slot = windowLabel(s);
-              const mine = s.kept as Proof | undefined;
-              const status = mine ? (mine.refused ? tr("Not taken") : tr("Kept, to send")) : String(s.status ?? "Pending");
-              const open = (outcome: string) => setProving({ trip: t, stop: s, outcome });
-              return (
-                <li key={String(s.id ?? s.sequence)} className="stack">
-                  <span>
-                    <strong>{isolate(String(s.sequence))}.</strong> {(collect ? tr("Collect from {value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }) : tr("{value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }))}{slot ? ` · ${slot}` : ""}{isolate(" ")}
-                    <Badge tone={mine ? "amber" : statusTone(status, STOP_TONES)}>{isolate(status)}</Badge>
-                    {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
-                  </span>
-                  {!mine && (s.status ?? "Pending") === "Pending" && (
-                    <span className="row">
-                      <Button size="sm" variant="primary" onClick={() => open(collect ? "Collected" : "Delivered")}>
-                        {collect ? tr("Collected") : tr("Delivered")}
-                      </Button>
-                      <Button size="sm" onClick={() => open("Not Home")}>
-                        {collect ? tr("Not collected") : tr("Not delivered")}
-                      </Button>
-                    </span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-        </section>
-      ))}
+      </div>
       {proving && (
         <ProofDialog
           {...proving}
@@ -132,7 +145,7 @@ export function Drive() {
           }}
         />
       )}
-    </div>
+    </>
   );
 }
 
@@ -285,7 +298,6 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
         onPointerCancel={end}
       />
       <Button
-        size="sm"
         onClick={() => {
           blank();
           onChange(null);

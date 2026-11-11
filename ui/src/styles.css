@@ -4,14 +4,93 @@
 @source "../../../ferrum/web/src";
 @source ".";
 
-.np-page {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
+/* Today's trips: how far along the stops are (read only: the number beside it says it too). */
+.trip-meter {
+  display: block;
+  block-size: 6px;
+  margin-block: 4px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
 }
 
-.np-columns {
+.trip-meter > span {
+  display: block;
+  block-size: 100%;
+  background: var(--success);
+}
+
+/* A tile is narrow: a long flag wraps inside its badge instead of being cut off. */
+.trip-flags {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  align-items: center;
+}
+
+.trip-flags .badge {
+  white-space: normal;
+}
+
+.tile-meta:has(.trip-meter) {
+  inline-size: 100%;
+}
+
+/* One queue is as wide as a queue, not the page. */
+.service-due {
+  margin-block-start: 24px;
+  grid-template-columns: minmax(0, 28rem);
+}
+
+/* The driver's stops, on a phone: the address and its window, the stop's state, then big buttons. */
+.drive-stops {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.drive-stop {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--border);
+}
+
+.drive-stop:first-child {
+  border-block-start: 0;
+  padding-block-start: 0;
+}
+
+.drive-stop-head {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.drive-stop-no {
+  min-inline-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+
+.drive-stop-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.drive-stop-state,
+.drive-stop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-inline-start: calc(1.5rem + 12px);
+}
+
+/* Targets of 44px for gloved hands, on any screen: the kit's touch height is 44 where the pointer is coarse. */
+.drive-stop-actions .btn {
+  min-block-size: max(var(--control-h), calc(44 / 14 * 1rem));
 }
