@@ -101,6 +101,7 @@ their stops, a lost connection told from a refusal, and the day's trips opened f
 
 | Version | Highlights |
 |---|---|
+| **0.4.1** | The redesigned interface: the upgraded design system, shaped loading, told-apart states. |
 | **0.4.0** | Goods without a weight are not weightless: such a trip is weighed, and the weighing recorded, before it is dispatched. |
 | **0.3.12** | Its reports' names in Arabic and Hindi. |
 | **0.3.11** | Its names in Arabic and Hindi; the last English sentences translated. |
