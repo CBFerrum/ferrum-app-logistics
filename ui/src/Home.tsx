@@ -5,7 +5,10 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
 import { api, docPath, formatDate, formatDecimal, formatValue, todayIso, t as tr, isolate } from "@ferrum/client";
-import { Badge, ErrorState, PageLoading, statusTone, useShellTitle } from "@ferrum/kit";
+import { Badge, ErrorState, ListSkeleton, statusTone, useShellTitle } from "@ferrum/kit";
+
+// Trip.status as stored (packages/logistics/entities).
+const TRIP_TONES = { Planned: "neutral", Dispatched: "blue", Completed: "green", Cancelled: "neutral" } as const;
 
 export interface Row {
   id: string;
@@ -30,7 +33,7 @@ export function Home() {
   const day = todayIso();
   const q = useQuery({ queryKey: ["logistics", "trips", day], queryFn: async () => whole(await rows("Trip", [["date", "eq", day]], { sort: "number asc" })), refetchInterval: 30_000 });
   const due = useQuery({ queryKey: ["logistics", "service-due"], queryFn: () => rows("Vehicle", [["service_due", "eq", true]], { sort: "registration asc" }) });
-  if (q.isPending) return <PageLoading />;
+  if (q.isPending) return <ListSkeleton className="np-page" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   return (
     <div className="np-page">
@@ -54,7 +57,7 @@ export function Home() {
               {t.weight_unknown === true && t.measured_weight_kg == null && t.status === "Planned" && <Badge tone="amber">{tr("Weight unknown: weigh it before dispatch")}</Badge>}
               <span>{tr("{done} of {of} stops done", { done: p.done, of: p.of })}</span>
               {t.cost != null && <span className="faint">{tr("Cost {value}", { value: formatValue({ type: "currency" }, t.cost) })}</span>}
-              <Badge tone={statusTone(String(t.status))}>{isolate(String(t.status))}</Badge>
+              <Badge tone={statusTone(String(t.status), TRIP_TONES)}>{isolate(String(t.status))}</Badge>
             </Link>
           );
         })}

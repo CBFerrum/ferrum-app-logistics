@@ -9,9 +9,12 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState, type PointerEvent as Pointer } from "react";
 import { Link } from "react-router";
 import { errorMessage, formatMoment, newKey, todayIso, t as tr, isolate } from "@ferrum/client";
-import { Badge, Button, Dialog, EmptyState, ErrorState, Field, PageLoading, statusTone, toast, useShellTitle } from "@ferrum/kit";
+import { Badge, Button, Dialog, EmptyState, ErrorState, Field, ListSkeleton, statusTone, toast, useShellTitle } from "@ferrum/kit";
 import type { Row } from "./Home";
 import { flush, forgetProof, keepProof, keptProofs, loadTrips, missing, overlay, sendProof, unreachable, type Proof } from "./offline";
+
+// TripStop.status as stored (packages/logistics/entities).
+const STOP_TONES = { Pending: "neutral", Delivered: "green", Collected: "green", Failed: "red" } as const;
 
 /** A stop's window, as "09:00–11:00", "from 09:00" or "by 11:00"; empty without one. */
 export function windowLabel(stop: Row): string {
@@ -55,7 +58,7 @@ export function Drive() {
     };
   }, [sendKept]);
 
-  if (q.isPending) return <PageLoading />;
+  if (q.isPending) return <ListSkeleton className="np-page" />;
   if (q.isError) return <ErrorState error={q.error} onRetry={() => void q.refetch()} />;
   const proofs = kept.data ?? [];
   const waiting = proofs.filter((p) => !p.refused).length;
@@ -99,7 +102,7 @@ export function Drive() {
                 <li key={String(s.id ?? s.sequence)} className="stack">
                   <span>
                     <strong>{isolate(String(s.sequence))}.</strong> {(collect ? tr("Collect from {value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }) : tr("{value} · {value2} kg", { value: String(s.address ?? ""), value2: String(s.weight_kg ?? 0) }))}{slot ? ` · ${slot}` : ""}{isolate(" ")}
-                    <Badge tone={mine ? "amber" : statusTone(status)}>{isolate(status)}</Badge>
+                    <Badge tone={mine ? "amber" : statusTone(status, STOP_TONES)}>{isolate(status)}</Badge>
                     {s.late === true && <Badge tone="amber">{tr("Late")}</Badge>}
                   </span>
                   {!mine && (s.status ?? "Pending") === "Pending" && (
@@ -232,6 +235,7 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
     const c = ref.current;
     const g = c?.getContext("2d");
     if (!c || !g) return;
+    // ui-lint-allow raw-color: the signature is exported as a PNG on white, whatever the theme
     g.fillStyle = "#fff";
     g.fillRect(0, 0, c.width, c.height);
     drawn.current = false;
@@ -247,6 +251,7 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
     const g = e.currentTarget.getContext("2d");
     if (!from || !g) return;
     const to = at(e);
+    // ui-lint-allow raw-color: dark ink on the white PNG, whatever the theme
     g.strokeStyle = "#111";
     g.lineWidth = 4;
     g.lineCap = "round";
@@ -270,7 +275,7 @@ function SignaturePad({ onChange }: { onChange: (png: Blob | null) => void }) {
         height={200}
         role="img"
         aria-label={tr("Signature: draw it here")}
-        style={{ width: "100%", height: 140, touchAction: "none", borderRadius: 6, border: "1px solid var(--border, #ccc)" }}
+        style={{ width: "100%", height: 140, touchAction: "none", borderRadius: 6, border: "1px solid var(--border)" }}
         onPointerDown={(e) => {
           e.currentTarget.setPointerCapture(e.pointerId);
           last.current = at(e);
