@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { OfflineEnv } from "@ferrum/client";
 import { outcomes, windowLabel } from "./Drive";
-import { progress } from "./Home";
+import { progress, TRIP_TONES } from "./Home";
 import { loadTrips, missing, overlay, proofRecord, unreachable, type Proof } from "./offline";
 
 /** A device that may keep things: a lease until next year, and storage in memory. */
@@ -106,5 +106,11 @@ describe("working offline", () => {
     const ended = { ...device(), lease: { allowed: true, until: "2020-01-01T00:00:00Z", hours: 72, key: "k1", person: "p1" } };
     await loadTrips(day, ended, () => Promise.resolve({ trips }));
     expect(ended.storage.length).toBe(1);
+  });
+});
+
+describe("the trips' badges", () => {
+  it("takes a trip's tone from its status", () => {
+    expect(TRIP_TONES).toEqual({ Planned: "neutral", Dispatched: "blue", Completed: "green", Cancelled: "neutral" });
   });
 });
