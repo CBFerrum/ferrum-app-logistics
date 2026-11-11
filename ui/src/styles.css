@@ -4,14 +4,55 @@
 @source "../../../ferrum/web/src";
 @source ".";
 
-.np-page {
-  display: grid;
-  gap: 16px;
-  padding: 16px;
+/* The driver's stops, on a phone: the address and its window, the stop's state, then big buttons. */
+.drive-stops {
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
-.np-columns {
+.drive-stop {
   display: grid;
-  gap: 16px;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 8px;
+  padding-block: 12px;
+  border-block-start: 1px solid var(--border);
+}
+
+.drive-stop:first-child {
+  border-block-start: 0;
+  padding-block-start: 0;
+}
+
+.drive-stop-head {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.drive-stop-no {
+  min-inline-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted-foreground);
+}
+
+.drive-stop-text {
+  display: flex;
+  flex-direction: column;
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
+}
+
+.drive-stop-state,
+.drive-stop-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding-inline-start: calc(1.5rem + 12px);
+}
+
+/* Targets of 44px for gloved hands, on any screen: the kit's touch height is 44 where the pointer is coarse. */
+.drive-stop-actions .btn {
+  min-block-size: max(var(--control-h), calc(44 / 14 * 1rem));
 }
