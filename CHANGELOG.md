@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.3
+
+Needs the same platform as 0.4.2. No database change. Interface only, `ui/dist` rebuilt with Ferrum-Frontend `06bd1a2`.
+
+- A proof kept on the phone always has its signature field (a picture or none): the shape of proofs kept before
+  0.3.2 is gone, as no phone holds one. Sending stops only when the server cannot be reached (no server says
+  `ui_outdated`).
+- The two routes to the screens apps no longer have (`apps/:app/settings`, `x/:app/:page`) are gone.
+- The page starts through the frontend's `mountApp`, which keeps lists fresh for 30 seconds (Logistics said 5); the
+  interface lint has no baseline file any more.
+
 ## 0.4.2
 
 Rebuilt with Ferrum-Frontend 9e7190c, the design system as tuned after the landed build was reviewed. The left menu's icons are chosen so that none repeats on more than three rows and each fits its row; their drawings load beside the first page instead of inside it, so the page starts lighter; a row that scrolls sideways fades at the edge where there is more, in every browser and with reduced motion; a printed record leaves out empty fields and keeps its totals with the table; menus and popovers sit inside the page's landmarks for assistive technology; a selection bar folds what does not fit into More on a narrow screen. Nothing else changes.
