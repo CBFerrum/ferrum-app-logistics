@@ -28,6 +28,7 @@ const proof = (stop: number, extra: Partial<Proof> = {}): Proof => ({
   received_by: " Bo ",
   note: "",
   photo: null,
+  signature: null,
   photo_name: "",
   happened_at: "2026-11-06T09:30:00.000Z",
   ...extra,

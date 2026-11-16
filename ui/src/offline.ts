@@ -4,7 +4,7 @@
 // sent: oldest first, each safe to send again (its key), stopping at the first the server cannot
 // be reached for. One the server refuses stays, with its reason, until the driver discards it.
 
-import { api, ApiError, cacheName, docPath, errorMessage, offlineEnv, pendingName, uploadFile, type OfflineEnv, t as tr } from "@ferrum/client";
+import { api, cacheName, docPath, errorMessage, offlineEnv, pendingName, uploadFile, type OfflineEnv, t as tr } from "@ferrum/client";
 import type { Row } from "./Home";
 
 /** How long the page waits for the server before it shows what this phone kept. */
@@ -66,8 +66,8 @@ export interface Proof {
   photo_name: string;
   /** The photo's address once stored, so a proof sent again does not store it twice. */
   photo_url?: string;
-  /** A signature drawn on the screen, as a PNG (none on proofs kept before 0.3.2). */
-  signature?: Blob | null;
+  /** A signature drawn on the screen, as a PNG. */
+  signature: Blob | null;
   signature_url?: string;
   happened_at: string;
   /** Why the server would not take it. */
@@ -171,8 +171,8 @@ export function flush(): Promise<number> {
         await forgetProof(p.key);
         sent++;
       } catch (e) {
-        // Unreachable, or this page is older than the app: kept, to go later.
-        if (unreachable(e) || (e instanceof ApiError && e.code === "ui_outdated")) break;
+        // Unreachable: kept, to go later.
+        if (unreachable(e)) break;
         await keepProof({ ...p, refused: errorMessage(e) });
       }
     }

@@ -7,7 +7,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-0.4.2-1d4ed8?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.3-1d4ed8?style=flat-square)](CHANGELOG.md)
 [![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ferrum platform](https://img.shields.io/badge/runs%20on-Ferrum-2f5bea?style=flat-square)](https://github.com/CBFerrum/Ferrum)
 ![Rust](https://img.shields.io/badge/Rust-server-b7410e?style=flat-square&logo=rust)
@@ -332,6 +332,7 @@ product does not aim at it. For the leaders, 🟡 means partly, or through anoth
 
 ### ✅ Recently shipped
 
+- [x] **0.4.3** Rebuilt on Ferrum-Frontend 06bd1a2: proofs in one shape, its start through `mountApp`, no routes to the screens apps no longer have.
 - [x] **0.4.2** Rebuilt on the tuned design system: better menu icons, a lighter first page, cleaner print.
 - [x] **0.4.1** The redesigned interface: the home on the kit's work-home pattern, shaped loading, told-apart states.
 - [x] **0.4.0** Goods without a weight are not weightless: such a trip is weighed and recorded before dispatch.
