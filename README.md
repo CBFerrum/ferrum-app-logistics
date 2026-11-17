@@ -20,7 +20,9 @@
 
 For companies that deliver with their own vehicles: a dispatcher who plans the day, drivers with a phone, and
 someone who keeps the fleet on the road. It replaces a whiteboard of trips, paper delivery slips and a fuel
-spreadsheet, and it works on the same delivery notes and stock as Ferrum ERP.
+spreadsheet, and it works on the same delivery notes and stock as Ferrum ERP. It runs trips of your own vehicles. It does
+not book outside carriers (parcels by carrier are ERP's), find road routes or track vehicles live; distances are straight
+lines.
 
 [💡 Why](#-why-ferrum-logistics) · [📸 Screenshots](#-screenshots) · [✨ Features](#-features) · [📊 Compare](#-how-it-compares) · [📍 Roadmap](#-roadmap) · [🚀 Install](#-install) · [🔧 Develop](#-develop)
 
@@ -48,7 +50,7 @@ spreadsheet, and it works on the same delivery notes and stock as Ferrum ERP.
 
 | | |
 |---|---|
-| 📦 **Version** | `0.4.2` |
+| 📦 **Version** | `0.4.3` |
 | 🖥️ **Kind** | Own interface at `/logistics/` (today's trips for dispatchers, a driver's stops that open offline); every other record in Ferrum's records frame |
 | 🧱 **What it adds** | 1 package; 6 entities and 1 line table; 2 roles; 1 report; 1 menu; a Weight (kg) field on items |
 | 🔗 **Depends on** | Ferrum platform `>=0.3.2, <0.4` and ERP (customers, items, delivery notes) |
