@@ -103,6 +103,10 @@
     - {name: dispatch, label: Dispatch It, permission: write, condition: "doc.status == 'Planned'"}
     - {name: complete, label: Complete It, permission: write, condition: "doc.status == 'Dispatched'"}
     - {name: cancel_trip, label: Cancel It, permission: write, condition: "doc.status == 'Planned' || doc.status == 'Dispatched'"}
+  # The database holds a vehicle, and a driver, to one trip out on a day, whoever writes.
+  exclusion:
+    - {fields: [vehicle], from: date, to: date, when_not: {status: [Planned, Completed, Cancelled]}, message: The vehicle is out on another trip that day}
+    - {fields: [driver], from: date, to: date, when_not: {status: [Planned, Completed, Cancelled]}, message: The driver is out on another trip that day}
   numbering: {template: "TRP-{YYYY}-{seq:5}"}
   list: {columns: [number, date, vehicle, driver, total_weight, status], sort: date desc}
 

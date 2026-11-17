@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.4.4
+
+Needs the same platform as 0.4.3. A vehicle, a driver or a note is no longer given to two trips by requests at the
+same moment: each check read the other trips and then wrote, and nothing kept two requests from both reading
+"free" (fifty at once dispatched up to 24 trips of one vehicle on one day, and saved up to 33 trips with one note).
+
+- **Vehicles and drivers.** The database holds a vehicle, and a driver, to one dispatched trip on a day: two
+  exclusion constraints on Trip, whoever writes. The one of two dispatched together that commits second is told
+  "The vehicle (or driver) is out on another trip that day"; one dispatched later is still told which trip is out.
+- **Delivery and return notes.** Saving a trip locks each of its notes before looking for another open trip with
+  it, so trips saved with one note at the same moment take turns: one has it, and the rest are told which trip does.
+- `tests/double_booking_it.rs` makes fifty of each request at the same moment, each in its own transaction.
+
 ## 0.4.3
 
 Needs the same platform as 0.4.2. No database change. Interface only, `ui/dist` rebuilt with Ferrum-Frontend `06bd1a2`.
