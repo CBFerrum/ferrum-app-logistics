@@ -7,7 +7,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-0.4.3-1d4ed8?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.4.4-1d4ed8?style=flat-square)](CHANGELOG.md)
 [![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ferrum platform](https://img.shields.io/badge/runs%20on-Ferrum-2f5bea?style=flat-square)](https://github.com/CBFerrum/Ferrum)
 ![Rust](https://img.shields.io/badge/Rust-server-b7410e?style=flat-square&logo=rust)
@@ -50,7 +50,7 @@ lines.
 
 | | |
 |---|---|
-| 📦 **Version** | `0.4.3` |
+| 📦 **Version** | `0.4.4` |
 | 🖥️ **Kind** | Own interface at `/logistics/` (today's trips for dispatchers, a driver's stops that open offline); every other record in Ferrum's records frame |
 | 🧱 **What it adds** | 1 package; 6 entities and 1 line table; 2 roles; 1 report; 1 menu; a Weight (kg) field on items |
 | 🔗 **Depends on** | Ferrum platform `>=0.3.2, <0.4` and ERP (customers, items, delivery notes) |
@@ -126,7 +126,8 @@ lines.
 - **A trip** is a vehicle and its driver out for a day from a depot, numbered `TRP-{YYYY}-{seq:5}`, with its stops
   in order: Planned, Dispatched, Completed or Cancelled.
 - **Deliveries** come from submitted ERP delivery notes, each bringing its customer, address and goods. A note is
-  one stop of one open trip: a draft note, or one on another trip, is refused.
+  one stop of one open trip: a draft note, or one on another trip, is refused. Trips saved with one note at the
+  same moment take turns, so one has it; return notes alike.
 - **Collections** bring goods back: a stop names ERP's return delivery note in draft, which is submitted when the
   goods are collected, so they are back in stock.
 - **Windows** from `HH:MM` to `HH:MM`; a stop proved after its window closed, on the workspace's clock, is marked
@@ -149,7 +150,8 @@ lines.
 
 - **Dispatch It** succeeds only when the vehicle is on the road and carries the load, the driver is active and
   licensed on the day, neither is out on another trip, every delivery note is submitted and every return note is
-  in draft, each on no other open trip. A refusal names the reason, with figures ("carries 100 kg").
+  in draft, each on no other open trip. A refusal names the reason, with figures ("carries 100 kg"). The database
+  holds a vehicle, and a driver, to one trip out on a day, so of trips dispatched at the same moment one goes.
 - **After dispatch** the delivery notes carry the vehicle's registration; the trip keeps its vehicle, driver and
   stops, though a window may still move.
 - **Same-day reuse**: once a trip is completed, its vehicle and driver may go out again that day.
@@ -334,6 +336,7 @@ product does not aim at it. For the leaders, 🟡 means partly, or through anoth
 
 ### ✅ Recently shipped
 
+- [x] **0.4.4** A vehicle, a driver or a note is not given to two trips dispatched or saved at the same moment.
 - [x] **0.4.3** Rebuilt on Ferrum-Frontend 06bd1a2: proofs in one shape, its start through `mountApp`, no routes to the screens apps no longer have.
 - [x] **0.4.2** Rebuilt on the tuned design system: better menu icons, a lighter first page, cleaner print.
 - [x] **0.4.1** The redesigned interface: the home on the kit's work-home pattern, shaped loading, told-apart states.
@@ -414,6 +417,10 @@ cargo test
 - fuel logs, services due by the kilometres and by the day, and Fleet Costs;
 - who may do what.
 
+`tests/double_booking_it.rs` dispatches fifty trips of one vehicle, then fifty of one driver, and saves fifty trips
+with one delivery note, then fifty with one return note, all at the same moment, each in its own transaction, on
+three days, and checks that each time one of them gets it.
+
 ### 🖥️ Interface
 
 The interface lives in `ui/` and builds with Ferrum-Frontend's packages from `../ferrum/web`:
@@ -438,7 +445,7 @@ src/
 ├── geo.rs        straight-line distances and nearest-first order
 └── site.rs       the driver's endpoint
 ui/               its own interface (React + Vite); ui/public/sw.js is the offline worker
-tests/            a delivery day against a real PostgreSQL
+tests/            a delivery day, and requests at the same moment, against a real PostgreSQL
 docs/             provenance
 ```
 

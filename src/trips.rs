@@ -148,12 +148,14 @@ impl DocHook for TripHook {
                 return Err(Error::field("stops", format!("stop {n} delivers: a return note goes with a collection")));
             }
             if let Some(back) = id(r, "return_note") {
-                let row: Option<(i16, bool, Option<String>)> =
-                    sqlx::query_as("select docstatus, coalesce(is_return, false), number from e_delivery_note where tenant_id = $1 and id = $2")
-                        .bind(hc.ctx.tenant)
-                        .bind(back)
-                        .fetch_optional(&mut **hc.tx)
-                        .await?;
+                // Locked, as a delivery note is below, before its other trips are looked for.
+                let row: Option<(i16, bool, Option<String>)> = sqlx::query_as(
+                    "select docstatus, coalesce(is_return, false), number from e_delivery_note where tenant_id = $1 and id = $2 for no key update",
+                )
+                .bind(hc.ctx.tenant)
+                .bind(back)
+                .fetch_optional(&mut **hc.tx)
+                .await?;
                 let (docstatus, is_return, _) = row.ok_or_else(|| Error::field("stops", "a return note there is not this workspace's"))?;
                 if !is_return || (docstatus != 0 && status(doc, "Planned") == "Planned") {
                     return Err(Error::field(
@@ -169,11 +171,15 @@ impl DocHook for TripHook {
             if !notes.insert(note) {
                 return Err(Error::field("stops", "a delivery note is one stop of a trip"));
             }
-            let row: Option<(i16, Option<String>)> = sqlx::query_as("select docstatus, number from e_delivery_note where tenant_id = $1 and id = $2")
-                .bind(hc.ctx.tenant)
-                .bind(note)
-                .fetch_optional(&mut **hc.tx)
-                .await?;
+            // The note locked before its other trips are looked for: trips saved with it at the same
+            // moment take turns, and each sees the one before. An exclusion constraint cannot hold
+            // it: the note is on a stop, and whether its trip is open is the trip's.
+            let row: Option<(i16, Option<String>)> =
+                sqlx::query_as("select docstatus, number from e_delivery_note where tenant_id = $1 and id = $2 for no key update")
+                    .bind(hc.ctx.tenant)
+                    .bind(note)
+                    .fetch_optional(&mut **hc.tx)
+                    .await?;
             let (docstatus, number) = row.ok_or_else(|| Error::field("stops", "a delivery note there is not this workspace's"))?;
             let number = number.unwrap_or_default();
             if docstatus != 1 {
@@ -384,6 +390,8 @@ async fn dispatchable(hc: &mut HookCtx<'_>, doc: &Doc) -> Result<()> {
     if dr.2.is_none_or(|e| e < on) {
         return Err(Error::field("driver", format!("{}'s licence is not valid on {day}", dr.0)));
     }
+    // The database holds this (the exclusions on Trip, which also refuse the one of two dispatched
+    // at once that commits second); this names the trip that is out.
     let busy: Option<String> = sqlx::query_scalar(
         "select number from e_trip where tenant_id = $1 and \"date\" = $2 and status = 'Dispatched' and id <> $5 and (vehicle = $3 or driver = $4) limit 1",
     )
