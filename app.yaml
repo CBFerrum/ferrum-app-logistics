@@ -1,6 +1,6 @@
 id: logistics
 name: Logistics
-version: 0.4.4
+version: 0.5.0
 publisher: cbferrum
 summary: "Depots, vehicles and drivers, trips of deliveries and collections in their windows, proof of delivery that works offline, and the fleet's fuel, services and costs"
 description: README.md
@@ -9,7 +9,7 @@ license: AGPL-3.0-only
 homepage: https://github.com/CBFerrum/ferrum-app-logistics
 support: https://github.com/CBFerrum/ferrum-app-logistics/issues
 runtime: native
-platform: ">=0.3.2, <0.4"
+platform: ">=0.4.0, <0.5"
 # Delivery notes and customers are ERP's: installing it installs ERP.
 requires: {erp: ">=0.1"}
 packages: [logistics]

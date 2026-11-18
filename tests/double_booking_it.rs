@@ -57,7 +57,6 @@ impl Yard {
         ferrum_app_logistics::register(&mut hooks);
         let k = Kernel::boot(db, Catalog::from_packages(packages).expect("catalog"), hooks, KernelSettings::default(), None).await.expect("boot");
         ferrum_domain::maintenance(&k).await.expect("partitions");
-        ferrum_app_erp::maintenance(&k).await.expect("partitions");
         let tenant = k
             .create_tenant(NewTenant {
                 slug: "yard".into(),
