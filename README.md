@@ -7,7 +7,7 @@
 
 <br>
 
-[![Version](https://img.shields.io/badge/version-0.4.4-1d4ed8?style=flat-square)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-0.5.0-1d4ed8?style=flat-square)](CHANGELOG.md)
 [![Licence: AGPL-3.0](https://img.shields.io/badge/licence-AGPL--3.0-blue?style=flat-square)](LICENSE)
 [![Ferrum platform](https://img.shields.io/badge/runs%20on-Ferrum-2f5bea?style=flat-square)](https://github.com/CBFerrum/Ferrum)
 ![Rust](https://img.shields.io/badge/Rust-server-b7410e?style=flat-square&logo=rust)
@@ -53,7 +53,7 @@ lines.
 | 📦 **Version** | `0.4.4` |
 | 🖥️ **Kind** | Own interface at `/logistics/` (today's trips for dispatchers, a driver's stops that open offline); every other record in Ferrum's records frame |
 | 🧱 **What it adds** | 1 package; 6 entities and 1 line table; 2 roles; 1 report; 1 menu; a Weight (kg) field on items |
-| 🔗 **Depends on** | Ferrum platform `>=0.3.2, <0.4` and ERP (customers, items, delivery notes) |
+| 🔗 **Depends on** | Ferrum platform `>=0.4.0, <0.5` and ERP (customers, items, delivery notes) |
 | 🤝 **Works with** | ERP's delivery notes, return notes and stock |
 | 🗣️ **Languages** | English, Arabic and Hindi; pages mirror right to left |
 | 🧪 **Tests** | 6 Rust tests against a real PostgreSQL that walk a whole delivery day, 9 interface tests |
@@ -336,6 +336,7 @@ product does not aim at it. For the leaders, 🟡 means partly, or through anoth
 
 ### ✅ Recently shipped
 
+- [x] **0.5.0** Upkeep is one workspace's: needs Ferrum 0.4.0.
 - [x] **0.4.4** A vehicle, a driver or a note is not given to two trips dispatched or saved at the same moment.
 - [x] **0.4.3** Rebuilt on Ferrum-Frontend 06bd1a2: proofs in one shape, its start through `mountApp`, no routes to the screens apps no longer have.
 - [x] **0.4.2** Rebuilt on the tuned design system: better menu icons, a lighter first page, cleaner print.

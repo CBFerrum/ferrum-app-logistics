@@ -117,7 +117,6 @@ async fn scenario() {
     }
     let k = Kernel::boot(db, catalog, hooks, KernelSettings::default(), None).await.expect("boot");
     ferrum_domain::maintenance(&k).await.expect("partitions");
-    ferrum_app_erp::maintenance(&k).await.expect("partitions");
     let tenant = k
         .create_tenant(NewTenant {
             slug: "fleet".into(),
@@ -464,9 +463,9 @@ async fn scenario() {
     service(json!({"odometer_km": "10150", "next_service_on": "2099-06-30"})).await.expect("serviced");
     let v = t.get("Vehicle", van1).await;
     assert_eq!((v["last_service_km"].as_i64(), v["odometer_km"].as_i64(), v["service_due"].as_bool()), (Some(10150), Some(10150), Some(false)));
-    ferrum_app_logistics::maintenance(&k).await.expect("upkeep");
+    ferrum_app_logistics::maintenance(&k, t.tenant).await.expect("upkeep");
     assert_eq!(t.get("Vehicle", van1).await["service_due"].as_bool(), Some(false), "not due before its day");
-    ferrum_app_logistics::maintenance_on(&k, chrono::NaiveDate::from_ymd_opt(2099, 6, 30).unwrap()).await.expect("upkeep");
+    ferrum_app_logistics::maintenance_on(&k, t.tenant, chrono::NaiveDate::from_ymd_opt(2099, 6, 30).unwrap()).await.expect("upkeep");
     assert_eq!(t.get("Vehicle", van1).await["service_due"].as_bool(), Some(true), "due by the day");
     let range = |vehicle: Uuid| {
         HashMap::from([

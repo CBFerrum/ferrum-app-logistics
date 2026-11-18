@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+No database or interface change. Needs Ferrum 0.4.0 (apps' upkeep runs one workspace at a time, on whichever replica is free).
+
+- **Upkeep is one workspace's.** `maintenance(k, tenant)` and `maintenance_on(k, tenant, today)` mark that workspace's services due; they
+  no longer list workspaces or check for the package.
+
 ## 0.4.4
 
 Needs the same platform as 0.4.3. A vehicle, a driver or a note is no longer given to two trips by requests at the

@@ -28,7 +28,7 @@ mod trips;
 use chrono::NaiveDate;
 use ferrum_domain::reports::ReportSource;
 use ferrum_domain::util::s;
-use ferrum_kernel::{Ctx, Doc, Error, HookRegistry, Kernel, Result};
+use ferrum_kernel::{Ctx, Doc, HookRegistry, Kernel, Result};
 use serde_json::Value;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -59,35 +59,20 @@ pub fn reports() -> Vec<Arc<dyn ReportSource>> {
     vec![Arc::new(fleet::FleetReports)]
 }
 
-/// Upkeep: in each workspace with Logistics, services falling due on its own day are marked due.
-pub async fn maintenance(k: &Kernel) -> Result<()> {
-    upkeep_all(k, None).await
+/// Upkeep, for one workspace: services falling due on its own day are marked due.
+pub async fn maintenance(k: &Kernel, tenant: Uuid) -> Result<()> {
+    upkeep(k, tenant, None).await
 }
 
-/// Upkeep as on `today` in every workspace, for tests.
-pub async fn maintenance_on(k: &Kernel, today: NaiveDate) -> Result<()> {
-    upkeep_all(k, Some(today)).await
+/// Upkeep as on `today`, for tests.
+pub async fn maintenance_on(k: &Kernel, tenant: Uuid, today: NaiveDate) -> Result<()> {
+    upkeep(k, tenant, Some(today)).await
 }
 
-async fn upkeep_all(k: &Kernel, day: Option<NaiveDate>) -> Result<()> {
-    let mut tx = k.db.system_tx().await?;
-    let tenants: Vec<Uuid> = sqlx::query_scalar("select id from tenant where status = 'active' order by id").fetch_all(&mut *tx).await?;
-    tx.commit().await?;
-    let mut first_error: Option<Error> = None;
-    for tenant in tenants {
-        let done = match k.registry.schema(tenant).await {
-            Ok(s) if s.packages.iter().any(|p| p == "logistics") => {
-                let today = day.unwrap_or_else(|| Ctx::system(tenant, s.clone()).today());
-                fleet::upkeep(k, tenant, s, today).await
-            }
-            Ok(_) => Ok(()),
-            Err(e) => Err(e),
-        };
-        if let Err(e) = done {
-            first_error.get_or_insert(e);
-        }
-    }
-    first_error.map_or(Ok(()), Err)
+async fn upkeep(k: &Kernel, tenant: Uuid, day: Option<NaiveDate>) -> Result<()> {
+    let s = k.registry.schema(tenant).await?;
+    let today = day.unwrap_or_else(|| Ctx::system(tenant, s.clone()).today());
+    fleet::upkeep(k, tenant, s, today).await
 }
 
 /// A document from JSON.
